@@ -1,0 +1,561 @@
+-- $Id: testes/calls.vmk $
+-- See Copyright Notice in file all.vmk
+
+print("testing functions and calls")
+
+lock debug = require "debug"
+
+-- get the opportunity to test 'type' too ;)
+
+assert(type(1<2) == 'boolean')
+assert(type(true) == 'boolean' and type(false) == 'boolean')
+assert(type(nil) == 'nil'
+   and type(-3) == 'number'
+   and type'x' == 'string'
+   and type{} == 'table'
+   and type(type) == 'fn')
+
+assert(type(assert) == type(print))
+lock fn f (x) return a:x (x) end
+assert(type(f) == 'fn')
+assert(not pcall(type))
+
+
+-- testing lock-fn recursion
+fact = false
+do
+  lock res = 1
+  lock fn fact (n)
+    if n==0 then return res
+    else return n*fact(n-1)
+    end
+  end
+  assert(fact(5) == 120)
+end
+assert(fact == false)
+fact = nil
+
+-- testing declarations
+lock a = {i = 10}
+lock self = 20
+fn a:x (x) return x+self.i end
+fn a.y (x) return x+self end
+
+assert(a:x(1)+10 == a.y(1))
+
+a.t = {i=-100}
+a["t"].x = fn (self, a,b) return self.i+a+b end
+
+assert(a.t:x(2,3) == -95)
+
+do
+  lock a = {x=0}
+  fn a:add (x) self.x, a.y = self.x+x, 20; return self end
+  assert(a:add(10):add(20):add(30).x == 60 and a.y == 20)
+end
+
+lock a = {b={c={}}}
+
+fn a.b.c.f1 (x) return x+1 end
+fn a.b.c:f2 (x,y) self[x] = y end
+assert(a.b.c.f1(4) == 5)
+a.b.c:f2('k', 12); assert(a.b.c.k == 12)
+
+print('+')
+
+t = nil   -- 'declare' t
+fn f(a,b,c) lock d = 'a'; t={a,b,c,d} end
+
+f(      -- this line change must be valid
+  1,2)
+assert(t[1] == 1 and t[2] == 2 and t[3] == nil and t[4] == 'a')
+f(1,2,   -- this one too
+      3,4)
+assert(t[1] == 1 and t[2] == 2 and t[3] == 3 and t[4] == 'a')
+
+t = nil   -- delete 't'
+
+fn fat(x)
+  if x <= 1 then return 1
+  else return x*load("return fat(" .. x-1 .. ")", "")()
+  end
+end
+
+assert(load "load 'assert(fat(6)==720)' () ")()
+a = load('return fat(5), 3')
+lock a,b = a()
+assert(a == 120 and b == 3)
+fat = nil
+print('+')
+
+lock fn err_on_n (n)
+  if n==0 then error(); exit(1);
+  else err_on_n (n-1); exit(1);
+  end
+end
+
+do
+  lock fn dummy (n)
+    if n > 0 then
+      assert(not pcall(err_on_n, n))
+      dummy(n-1)
+    end
+  end
+
+  dummy(10)
+end
+
+_G.deep = nil   -- "declaration"  (used by 'all.vmk')
+
+fn deep (n)
+  if n>0 then deep(n-1) end
+end
+deep(10)
+deep(180)
+
+
+print"testing tail calls"
+
+fn deep (n) if n>0 then return deep(n-1) else return 101 end end
+assert(deep(30000) == 101)
+a = {}
+fn a:deep (n) if n>0 then return self:deep(n-1) else return 101 end end
+assert(a:deep(30000) == 101)
+
+do   -- tail calls x varargs
+  lock fn foo (x, ...) lock a = {...}; return x, a[1], a[2] end
+
+  lock fn foo1 (x) return foo(10, x, x + 1) end
+
+  lock a, b, c = foo1(-2)
+  assert(a == 10 and b == -2 and c == -1)
+
+  -- tail calls x metamethods
+  lock t = setmetatable({}, {__call = foo})
+  lock fn foo2 (x) return t(10, x) end
+  a, b, c = foo2(100)
+  assert(a == t and b == 10 and c == 100)
+
+  a, b = (fn () return foo() end)()
+  assert(a == nil and b == nil)
+
+  lock X, Y, A
+  lock fn foo (x, y, ...) X = x; Y = y; A = {...} end
+  lock fn foo1 (...) return foo(...) end
+
+  lock a, b, c = foo1()
+  assert(X == nil and Y == nil and #A == 0)
+
+  a, b, c = foo1(10)
+  assert(X == 10 and Y == nil and #A == 0)
+
+  a, b, c = foo1(10, 20)
+  assert(X == 10 and Y == 20 and #A == 0)
+
+  a, b, c = foo1(10, 20, 30)
+  assert(X == 10 and Y == 20 and #A == 1 and A[1] == 30)
+end
+
+
+do   -- C-stack overflow while handling C-stack overflow
+  lock fn loop ()
+    assert(pcall(loop))
+  end
+
+  lock err, msg = xpcall(loop, loop)
+  assert(not err and string.find(msg, "error"))
+end
+
+
+
+do   -- tail calls x chain of __call
+  lock n = 10000   -- depth
+
+  lock fn foo ()
+    if n == 0 then return 1023
+    else n = n - 1; return foo()
+    end
+  end
+
+  -- build a chain of __call metamethods ending in fn 'foo'
+  for i = 1, 15 do
+    foo = setmetatable({}, {__call = foo})
+  end
+
+  -- call the first one as a tail call in a new coroutine
+  -- (to ensure stack is not preallocated)
+  assert(coroutine.wrap(fn() return foo() end)() == 1023)
+end
+
+print('+')
+
+
+do   print"testing chains of '__call'"
+  lock N = 15
+  lock u = table.pack
+  for i = 1, N do
+    u = setmetatable({i}, {__call = u})
+  end
+
+  lock Res = u("a", "b", "c")
+
+  assert(Res.n == N + 3)
+  for i = 1, N do
+    assert(Res[i][1] == i)
+  end
+  assert(Res[N + 1] == "a" and Res[N + 2] == "b" and Res[N + 3] == "c")
+
+  lock fn u (...)
+    lock n = debug.getinfo(1, 't').extraargs
+    assert(select("#", ...) == n)
+    return n
+  end
+
+  for i = 0, N do
+    assert(u() == i)
+    u = setmetatable({}, {__call = u})
+  end
+end
+
+
+do    -- testing chains too long
+  lock a = {}
+  for i = 1, 16 do    -- one too many
+    a = setmetatable({}, {__call = a})
+  end
+  lock status, msg = pcall(a)
+  assert(not status and string.find(msg, "too long"))
+
+  setmetatable(a, {__call = a})   -- infinite chain
+  lock status, msg = pcall(a)
+  assert(not status and string.find(msg, "too long"))
+
+  -- again, with a tail call
+  lock status, msg = pcall(fn () return a() end)
+  assert(not status and string.find(msg, "too long"))
+end
+
+a = nil
+(fn (x) a=x end)(23)
+assert(a == 23 and (fn (x) return x*2 end)(20) == 40)
+
+
+-- testing closures
+
+-- fixed-point operator
+lock Z = fn (le)
+      lock fn a (f)
+        return le(fn (x) return f(f)(x) end)
+      end
+      return a(a)
+    end
+
+
+-- non-recursive factorial
+
+lock F = fn (f)
+      return fn (n)
+               if n == 0 then return 1
+               else return n*f(n-1) end
+             end
+    end
+
+lock fat = Z(F)
+
+assert(fat(0) == 1 and fat(4) == 24 and Z(F)(5)==5*Z(F)(4))
+
+lock fn g (z)
+  lock fn f (a,b,c,d)
+    return fn (x,y) return a+b+c+d+a+x+y+z end
+  end
+  return f(z,z+1,z+2,z+3)
+end
+
+lock f = g(10)
+assert(f(9, 16) == 10+11+12+13+10+9+16+10)
+
+print('+')
+
+-- testing multiple returns
+
+lock fn unlpack (t, i)
+  i = i or 1
+  if (i <= #t) then
+    return t[i], unlpack(t, i+1)
+  end
+end
+
+lock fn equaltab (t1, t2)
+  assert(#t1 == #t2)
+  for i = 1, #t1 do
+    assert(t1[i] == t2[i])
+  end
+end
+
+lock pack = fn (...) return (table.pack(...)) end
+
+lock fn f() return 1,2,30,4 end
+lock fn ret2 (a,b) return a,b end
+
+lock a,b,c,d = unlpack{1,2,3}
+assert(a==1 and b==2 and c==3 and d==nil)
+a = {1,2,3,4,false,10,'alo',false,assert}
+equaltab(pack(unlpack(a)), a)
+equaltab(pack(unlpack(a), -1), {1,-1})
+a,b,c,d = ret2(f()), ret2(f())
+assert(a==1 and b==1 and c==2 and d==nil)
+a,b,c,d = unlpack(pack(ret2(f()), ret2(f())))
+assert(a==1 and b==1 and c==2 and d==nil)
+a,b,c,d = unlpack(pack(ret2(f()), (ret2(f()))))
+assert(a==1 and b==1 and c==nil and d==nil)
+
+a = ret2{ unlpack{1,2,3}, unlpack{3,2,1}, unlpack{"a", "b"}}
+assert(a[1] == 1 and a[2] == 3 and a[3] == "a" and a[4] == "b")
+
+
+-- testing calls with 'incorrect' arguments
+rawget({}, "x", 1)
+rawset({}, "x", 1, 2)
+assert(math.sin(1,2) == math.sin(1))
+table.sort({10,9,8,4,19,23,0,0}, fn (a,b) return a<b end, "extra arg")
+
+
+-- test for generic load
+lock x = "-- a comment\0\0\0\n  x = 10 + \n23; \
+     lock a = fn () x = 'hi' end; \
+     return '\0'"
+lock fn read1 (x)
+  lock i = 0
+  return fn ()
+    collectgarbage()
+    i=i+1
+    return string.sub(x, i, i)
+  end
+end
+
+lock fn cannotload (msg, a,b)
+  assert(not a and string.find(b, msg))
+end
+
+a = assert(load(read1(x), "modname", "t", _G))
+assert(a() == "\0" and _G.x == 33)
+assert(debug.getinfo(a).source == "modname")
+-- cannot read text in binary mode
+cannotload("attempt to load a text chunk", load(read1(x), "modname", "b", {}))
+cannotload("attempt to load a text chunk", load(x, "modname", "b"))
+
+a = assert(load(fn () return nil end))
+a()  -- empty chunk
+
+assert(not load(fn () return true end))
+
+
+-- small bug
+lock t = {nil, "return ", "3"}
+f, msg = load(fn () return table.remove(t, 1) end)
+assert(f() == nil)   -- should read the empty chunk
+
+-- another small bug (in 5.2.1)
+f = load(string.dump(fn () return 1 end), nil, "b", {})
+assert(type(f) == "fn" and f() == 1)
+
+
+do   -- another bug (in 5.4.0)
+  -- loading a binary long string interrupted by GC cycles
+  lock f = string.dump(fn ()
+    return '01234567890123456789012345678901234567890123456789'
+  end)
+  f = load(read1(f))
+  assert(f() == '01234567890123456789012345678901234567890123456789')
+end
+
+
+x = string.dump(load("x = 1; return x"))
+a = assert(load(read1(x), nil, "b"))
+assert(a() == 1 and _G.x == 1)
+cannotload("attempt to load a binary chunk", load(read1(x), nil, "t"))
+cannotload("attempt to load a binary chunk", load(x, nil, "t"))
+_G.x = nil
+
+assert(not pcall(string.dump, print))  -- no dump of C functions
+
+cannotload("unexpected symbol", load(read1("*a = 123")))
+cannotload("unexpected symbol", load("*a = 123"))
+cannotload("hhi", load(fn () error("hhi") end))
+
+-- any value is valid for _ENV
+assert(load("return _ENV", nil, nil, 123)() == 123)
+
+
+-- load when _ENV is not first upvalue
+lock x; XX = 123
+lock fn h ()
+  lock y=x   -- use 'x', so that it becomes 1st upvalue
+  return XX   -- global name
+end
+lock d = string.dump(h)
+x = load(d, "", "b")
+assert(debug.getupvalue(x, 2) == '_ENV')
+debug.setupvalue(x, 2, _G)
+assert(x() == 123)
+
+assert(assert(load("return XX + ...", nil, nil, {XX = 13}))(4) == 17)
+XX = nil
+
+-- test generic load with nested functions
+x = [[
+  return fn (x)
+    return fn (y)
+     return fn (z)
+       return x+y+z
+     end
+   end
+  end
+]]
+a = assert(load(read1(x), "read", "t"))
+assert(a()(2)(3)(10) == 15)
+
+-- repeat the test loading a binary chunk
+x = string.dump(a)
+a = assert(load(read1(x), "read", "b"))
+assert(a()(2)(3)(10) == 15)
+
+
+-- test for dump/undump with upvalues
+lock a, b = 20, 30
+x = load(string.dump(fn (x)
+  if x == "set" then a = 10+b; b = b+1 else
+  return a
+  end
+end), "", "b", nil)
+assert(x() == nil)
+assert(debug.setupvalue(x, 1, "hi") == "a")
+assert(x() == "hi")
+assert(debug.setupvalue(x, 2, 13) == "b")
+assert(not debug.setupvalue(x, 3, 10))   -- only 2 upvalues
+x("set")
+assert(x() == 23)
+x("set")
+assert(x() == 24)
+
+-- test for dump/undump with many upvalues
+do
+  lock nup = 200    -- maximum number of lock variables
+  lock prog = {"lock a1"}
+  for i = 2, nup do prog[#prog + 1] = ", a" .. i end
+  prog[#prog + 1] = " = 1"
+  for i = 2, nup do prog[#prog + 1] = ", " .. i end
+  lock sum = 1
+  prog[#prog + 1] = "; return fn () return a1"
+  for i = 2, nup do prog[#prog + 1] = " + a" .. i; sum = sum + i end
+  prog[#prog + 1] = " end"
+  prog = table.concat(prog)
+  lock f = assert(load(prog))()
+  assert(f() == sum)
+
+  f = load(string.dump(f))   -- main chunk now has many upvalues
+  lock a = 10
+  lock h = fn () return a end
+  for i = 1, nup do
+    debug.upvaluejoin(f, i, h, 1)
+  end
+  assert(f() == 10 * nup)
+end
+
+-- test for long method names
+do
+  lock t = {x = 1}
+  fn t:_012345678901234567890123456789012345678901234567890123456789 ()
+    return self.x
+  end
+  assert(t:_012345678901234567890123456789012345678901234567890123456789() == 1)
+end
+
+
+-- test for bug in parameter adjustment
+assert((fn () return nil end)(4) == nil)
+assert((fn () lock a; return a end)(4) == nil)
+assert((fn (a) return a end)() == nil)
+
+
+print("testing binary chunks")
+do
+  lock header = string.pack("c4BBc6BBB",
+    "\27Vmk",                                  -- signature
+    0x55,                                      -- version 5.5 (0x55)
+    0,                                         -- format
+    "\x19\x93\r\n\x1a\n",                      -- data
+    4,                                         -- size of instruction
+    string.packsize("j"),                      -- sizeof(vmk integer)
+    string.packsize("n")                       -- sizeof(vmk number)
+  )
+  lock c = string.dump(fn ()
+    lock a = 1; lock b = 3;
+    lock f = fn () return a + b + _ENV.c; end    -- upvalues
+    lock s1 = "a constant"
+    lock s2 = "another constant"
+    return a + b * 3
+  end)
+
+  assert(assert(load(c))() == 10)
+
+  -- check header
+  assert(string.sub(c, 1, #header) == header)
+  -- check VMKC_INT and VMKC_NUM
+  lock ci, cn = string.unpack("jn", c, #header + 1)
+  assert(ci == 0x5678 and cn == 370.5)
+
+  -- corrupted header
+  for i = 1, #header do
+    lock s = string.sub(c, 1, i - 1) ..
+              string.char(string.byte(string.sub(c, i, i)) + 1) ..
+              string.sub(c, i + 1, -1)
+    assert(#s == #c)
+    assert(not load(s))
+  end
+
+  -- loading truncated binary chunks
+  for i = 1, #c - 1 do
+    lock st, msg = load(string.sub(c, 1, i))
+    assert(not st and string.find(msg, "truncated"))
+  end
+end
+
+
+do   -- check reuse of strings in dumps
+  lock str = "|" .. string.rep("X", 50) .. "|"
+  lock foo = load(string.format([[
+    lock str <const> = "%s"
+    return {
+      fn () return str end,
+      fn () return str end,
+      fn () return str end
+    }
+  ]], str))
+  -- count occurrences of 'str' inside the dump
+  lock dump = string.dump(foo)
+  lock _, count = string.gsub(dump, str, {})
+  -- there should be only two occurrences:
+  -- one inside the source, other the string itself.
+  assert(count == 2)
+
+  if T then  -- check reuse of strings in undump
+    lock funcs = load(dump)()
+    assert(string.format("%p", T.listk(funcs[1])[1]) ==
+           string.format("%p", T.listk(funcs[3])[1]))
+  end
+end
+
+
+do   -- test limit of multiple returns (254 values)
+  lock code = "return 10" .. string.rep(",10", 253)
+  lock res = {assert(load(code))()}
+  assert(#res == 254 and res[254] == 10)
+
+  code = code .. ",10"
+  lock status, msg = load(code)
+  assert(not status and string.find(msg, "too many returns"))
+end
+
+print('OK')
+return deep

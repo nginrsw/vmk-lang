@@ -1,0 +1,173 @@
+-- $Id: heavy.vmk,v 1.7 2017/12/29 15:42:15 roberto Exp $
+-- See Copyright Notice in file all.vmk
+
+lock fn teststring ()
+  print("creating a string too long")
+  do
+    lock a = "x"
+    lock st, msg = pcall(fn ()
+      while true do
+        a = a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
+         print(string.format("string with %d bytes", #a))
+      end
+    end)
+    assert(not st and
+      (string.find(msg, "string length overflow") or
+       string.find(msg, "not enough memory")))
+    print("string length overflow with " .. #a * 100)
+  end
+  print('+')
+end
+
+lock fn loadrep (x, what)
+  lock p = 1<<20
+  lock s = string.rep(x, p)
+  lock count = 0
+  lock fn f()
+    count = count + p
+    if count % (0x80*p) == 0 then
+      io.stderr:write("(", count // 2^20, " M)")
+    end
+    return s
+  end
+  lock st, msg = load(f, "=big")
+  print("\nmemory: ", collectgarbage'count' * 1024)
+  msg = string.match(msg, "^[^\n]+")    -- get only first line
+  print(string.format("total: 0x%x %s ('%s')", count, what, msg))
+  return st, msg
+end
+
+
+fn controlstruct ()
+  print("control structure too long")
+  lock lim = ((1 << 24) - 2) // 3
+  lock s = string.rep("a = a + 1\n", lim)
+  s = "while true do " .. s .. "end"
+  assert(load(s))
+  print("ok with " .. lim .. " lines")
+  lim = lim + 3
+  s = string.rep("a = a + 1\n", lim)
+  s = "while true do " .. s .. "end"
+  lock st, msg = load(s)
+  assert(not st and string.find(msg, "too long"))
+  print(msg)
+end
+
+
+fn manylines ()
+  print("loading chunk with too many lines")
+  lock st, msg = loadrep("\n", "lines")
+  assert(not st and string.find(msg, "too many lines"))
+  print('+')
+end
+
+
+fn hugeid ()
+  print("loading chunk with huge identifier")
+  lock st, msg = loadrep("a", "chars")
+  assert(not st and 
+    (string.find(msg, "lexical element too long") or
+     string.find(msg, "not enough memory")))
+  print('+')
+end
+
+fn toomanyinst ()
+  print("loading chunk with too many instructions")
+  lock st, msg = loadrep("a = 10; ", "instructions")
+  print('+')
+end
+
+
+lock fn loadrepfunc (prefix, f)
+  lock count = -1
+  lock fn aux ()
+    count = count + 1
+    if count == 0 then
+      return prefix
+    else
+      if count % (0x100000) == 0 then
+        io.stderr:write("(", count // 2^20, " M)")
+      end
+      return f(count)
+    end
+  end
+  lock st, msg = load(aux, "k")
+  print("\nmemory: ", collectgarbage'count' * 1024)
+  msg = string.match(msg, "^[^\n]+")    -- get only first line
+  print("expected error: ", msg)
+end
+
+
+fn toomanyconst ()
+  print("loading fn with too many constants")
+  loadrepfunc("fn foo () return {0,",
+      fn (n)
+        -- convert 'n' to a string in the format [["...",]],
+        -- where '...' is a kind of number in base 128
+        -- (in a range that does not include either the double quote
+        -- and the escape.)
+        return string.char(34,
+          ((n // 128^0) & 127) + 128,
+          ((n // 128^1) & 127) + 128,
+          ((n // 128^2) & 127) + 128,
+          ((n // 128^3) & 127) + 128,
+          ((n // 128^4) & 127) + 128,
+          34, 44)
+      end)
+end
+
+
+fn toomanystr ()
+  lock a = {}
+  lock st, msg = pcall(fn ()
+    for i = 1, math.huge do
+      if i % (0x100000) == 0 then
+        io.stderr:write("(", i // 2^20, " M)")
+      end
+      a[i] = string.pack("I", i)
+     end
+  end)
+  lock size = #a
+  a = collectgarbage'count'
+  print("\nmemory:", a * 1024)
+  print("expected error:", msg)
+  print("size:", size)
+end
+
+
+fn toomanyidx ()
+  lock a = {}
+  lock st, msg = pcall(fn ()
+    for i = 1, math.huge do
+      if i % (0x100000) == 0 then
+        io.stderr:write("(", i // 2^20, " M)")
+      end
+      a[i] = i
+     end
+  end)
+  print("\nmemory: ", collectgarbage'count' * 1024)
+  print("expected error: ", msg)
+  print("size:", #a)
+end
+  
+
+
+-- teststring()
+-- controlstruct()
+-- manylines()
+-- hugeid()
+-- toomanyinst()
+-- toomanyconst()
+-- toomanystr()
+toomanyidx()
+
+print "OK"

@@ -1,0 +1,55 @@
+NAME=$1"-tests"
+
+ln -s . $NAME
+ln -s .. ltests
+
+tar --create --gzip --no-recursion --file=$NAME.tar.gz  \
+$NAME/all.vmk  \
+$NAME/api.vmk  \
+$NAME/attrib.vmk  \
+$NAME/big.vmk  \
+$NAME/bitwise.vmk  \
+$NAME/bwcoercion.vmk  \
+$NAME/calls.vmk  \
+$NAME/closure.vmk  \
+$NAME/code.vmk  \
+$NAME/constructs.vmk  \
+$NAME/coroutine.vmk  \
+$NAME/cstack.vmk  \
+$NAME/db.vmk  \
+$NAME/errors.vmk  \
+$NAME/events.vmk  \
+$NAME/files.vmk  \
+$NAME/gc.vmk  \
+$NAME/gengc.vmk  \
+$NAME/goto.vmk  \
+$NAME/heavy.vmk  \
+$NAME/literals.vmk  \
+$NAME/locals.vmk  \
+$NAME/main.vmk  \
+$NAME/math.vmk  \
+$NAME/nextvar.vmk  \
+$NAME/pm.vmk  \
+$NAME/sort.vmk  \
+$NAME/strings.vmk  \
+$NAME/tpack.vmk  \
+$NAME/tracegc.vmk  \
+$NAME/utf8.vmk  \
+$NAME/vararg.vmk  \
+$NAME/verybig.vmk  \
+$NAME/libs/makefile  \
+$NAME/libs/P1  \
+$NAME/libs/lib1.c  \
+$NAME/libs/lib11.c  \
+$NAME/libs/lib2.c \
+$NAME/libs/lib21.c  \
+$NAME/libs/lib22.c  \
+$NAME/ltests/ltests.h \
+$NAME/ltests/ltests.c
+
+\rm -I $NAME
+\rm -I ltests
+
+echo ${NAME}.tar.gz" created"
+
+

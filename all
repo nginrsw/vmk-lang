@@ -1,0 +1,9 @@
+make -s -j
+cd testes/libs; make -s
+cd ..     # back to directory 'testes'
+ulimit -S -s 1100
+if { ../vmk -W all.vmk; } then
+  echo -e "\n\n    final OK!!!!\n\n"
+else
+  echo -e "\n\n    >>>> BUG!!!!\n\n"
+fi

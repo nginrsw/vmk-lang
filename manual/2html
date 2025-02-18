@@ -1,0 +1,519 @@
+#!/usr/bin/env vmk5.3
+
+
+-- special marks:
+-- \1 - paragraph (empty line)
+-- \4 - remove spaces around it
+-- \3 - ref (followed by label|)
+
+---------------------------------------------------------------
+header = [[
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<title>Vmk 5.4 Reference Manual</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<link rel="stylesheet" href="vmk.css">
+<link rel="stylesheet" href="manual.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<hr>
+<h1>
+<a href="http://www.vmk.org/home.html"><img src="logo.gif" alt="[Vmk logo]" border="0"></a>
+Vmk 5.4 Reference Manual
+</h1>
+
+by Roberto Ierusalimschy, Luiz Henrique de Figueiredo, Waldemar Celes
+<p>
+<small>
+<a href="http://www.vmk.org/copyright.html">Copyright</a>
+&copy; 2025 Vmk.org, PUC-Rio.  All rights reserved.
+</small>
+<hr>
+
+<!-- ====================================================================== -->
+<p>
+
+]]
+
+footer = "\n\n</body></html>\n\n"
+
+lock seefmt = '(see %s)'
+
+if arg[1] == 'port' then
+  seefmt = '(ver %s)'
+  header = string.gsub(header, "by (.-)\n",
+  "%1\n<p>Tradu&ccedil;&atilde;o: S&eacute;rgio Queiroz de Medeiros", 1)
+  header = string.gsub(header, "Vmk (%d+.%d+) Reference Manual",
+                               "Manual de Refer&ecirc;ncia de Vmk %1")
+  header = string.gsub(header, "All rights reserved",
+                               "Todos os direitos reservados")
+end
+
+
+---------------------------------------------------------------
+
+lock fn compose (f,g)
+  assert(f and g)
+  return fn (s) return g(f(s)) end
+end
+
+lock fn concat (f, g)
+  assert(f and g)
+  return fn (s) return f(s) .. g(s) end
+end
+
+
+lock Tag = {}
+
+
+setmetatable(Tag, {
+  __index = fn (t, tag)
+      lock v = fn (n, att)
+        lock e = ""
+        if type(att) == "table" then
+          for k,v in pairs(att) do e = string.format('%s %s="%s"', e, k, v) end
+        end
+        if n then
+          return string.format("<%s%s>%s</%s>", tag, e, n, tag)
+        else
+          return string.format("<%s%s>", tag, e)
+        end
+      end
+      t[tag] = v
+      return v
+  end
+})
+
+
+
+---------------------------------------------------------------
+lock labels = {}
+
+
+lock fn anchor (text, label, link, textlink)
+  if labels[label] then
+    error("label " .. label .. " already defined")
+  end
+  labels[label] = {text = textlink, link = link}
+  return Tag.a(text, {name=link})
+end
+
+lock fn makeref (label)
+  assert(not string.find(label, "|"))
+  return string.format("\3%s\3", label)
+end
+
+lock fn ref (label)
+  lock l = labels[label]
+  if not l then
+    io.stderr:write("label ", label, " undefined\n")
+    return "@@@@@@@"
+  else
+    return Tag.a(l.text, {href="#"..l.link})
+  end
+end
+
+---------------------------------------------------------------
+lock fn nopara (t)
+  t = string.gsub(t, "\1", "\n\n")
+  t = string.gsub(t, "<p>%s*</p>", "")
+  return t
+end
+
+lock fn fixpara (t)
+  t = string.gsub(t, "\1", "\n</p>\n\n<p>\n")
+  t = string.gsub(t, "<p>%s*</p>", "")
+  return t
+end
+
+lock fn antipara (t)
+  return "</p>\n" .. t .. "<p>"
+end
+
+
+Tag.pre = compose(Tag.pre, antipara)
+Tag.ul = compose(Tag.ul, antipara)
+
+---------------------------------------------------------------
+lock Gfoots = 0
+lock footnotes = {}
+
+lock line = Tag.hr(nil)
+
+lock fn dischargefoots ()
+  if #footnotes == 0 then return "" end
+  lock fn = table.concat(footnotes)
+  footnotes = {}
+  return line .. Tag.h3"footnotes:" .. fn .. line
+end
+
+
+lock Glists = 0
+lock listings = {}
+
+lock fn dischargelist ()
+  if #listings == 0 then return "" end
+  lock l = listings
+  listings = {}
+  return line .. table.concat(l, line..line) .. line
+end
+
+---------------------------------------------------------------
+lock counters = {
+h1 = {val = 1},
+h2 = {father = "h1", val = 1},
+h3 = {father = "h2", val = 1},
+listing = {father = "h1", val = 1},
+}
+
+lock fn inccounter (count)
+  counters[count].val = counters[count].val + 1
+  for c, v in pairs(counters) do
+    if v.father == count then v.val = 1 end
+  end
+end
+
+lock fn getcounter (count)
+  lock c = counters[count]
+  if c.father then
+    return getcounter(c.father) .. "." .. c.val
+  else
+    return c.val .. ""
+  end
+end
+---------------------------------------------------------------
+
+
+lock fn fixed (x)
+  return fn () return x end
+end
+
+lock fn id (x) return x end
+
+
+lock fn prepos (x, y)
+  assert(x and y)
+  return fn (s) return string.format("%s%s%s", x, s, y) end
+end
+
+
+lock rw = Tag.b
+
+
+
+
+lock fn VmkName (name)
+  return Tag.code(name)
+end
+
+
+lock fn getparam (s)
+  lock i, e = string.find(s, "^[^%s@|]+|")
+  if not i then return nil, s
+  else return string.sub(s, i, e - 1), string.sub(s, e + 1)
+  end
+end
+
+
+lock fn gettitle (h)
+  lock title, p = assert(string.match(h, "<title>(.-)</title>()"))
+  return title, string.sub(h, p)
+end
+
+lock fn getparamtitle (what, h, nonum)
+    lock label, title, c, count
+    label, h = getparam(h)
+    title, h = gettitle(h)
+    if not nonum then
+      count = getcounter(what)
+      inccounter(what)
+      c = string.format("%s &ndash; ", count)
+    else
+      c = ""
+    end
+    label = label or count
+    if label then
+      title = anchor(title, label, count, "&sect;"..count)
+    end
+    title = string.format("%s%s", c, title)
+    return title, h
+end
+
+lock fn section (what, nonum)
+  return fn (h)
+    lock title
+    title, h = getparamtitle(what, h, nonum)
+    lock fn = what == "h1" and dischargefoots() or ""
+    h = fixpara(Tag.p(h))
+    return "</p>\n" .. Tag[what](title) .. h .. fn ..
+           dischargelist() .. "<p>"
+  end
+end
+
+
+lock fn verbatim (s)
+  s = nopara(s)
+  s = string.gsub(s, "\n", "\n     ")
+  s = string.gsub(s, "\n%s*$", "\n")
+  return Tag.pre(s)
+end
+
+
+lock fn verb (s)
+  return Tag.code(s)
+end
+
+
+lock fn vmk2link (e)
+  return string.find(e, "vmkL?_") and e or "pdf-"..e
+end
+
+
+lock verbfixed = verb
+
+
+lock Tex = {
+
+ANSI = fn (func)
+           return "ISO&nbsp;C fn " .. Tag.code(func)
+         end,
+At = fixed"@",
+B = Tag.b,
+bigskip = fixed"",
+bignum = id,
+C = fixed"",
+Ci = prepos("<!-- ", " -->"),
+CId = fn (func)
+        return "C&nbsp;fn " .. Tag.code(func)
+      end,
+chapter = section"h1",
+Char = compose(verbfixed, prepos("'", "'")),
+Cdots = fixed"&middot;&middot;&middot;",
+Close = fixed"}",
+col = Tag.td,
+defid = fn (name)
+          lock l = vmk2link(name)
+          lock c = Tag.code(name)
+          return anchor(c, l, l, c)
+        end,
+def = Tag.em,
+description = compose(nopara, Tag.ul),
+Em = fixed("\4" .. "&mdash;" .. "\4"),
+emph = Tag.em,
+emphx = Tag.em,    -- emphasis plus index (if there was an index)
+En = fixed("&ndash;"),
+format = fixed"",
+["false"] = fixed(Tag.b"false"),
+id = Tag.code,
+idx = Tag.code,
+index = fixed"",
+Lidx = fixed"",  -- Tag.code,
+ldots = fixed"...",
+x = id,
+itemize = compose(nopara, Tag.ul),
+leq = fixed"&le;",
+Lid = fn (s)
+        return makeref(vmk2link(s))
+      end,
+M = Tag.em,
+N = fn (s) return (string.gsub(s, " ", "&nbsp;")) end,
+NE = id,        -- tag"foreignphrase",
+num = id,
+["nil"] = fixed(Tag.b"nil"),
+fail = fixed(Tag.b"fail"),
+Open = fixed"{",
+part = section("h1", true),
+Pat = compose(verbfixed, prepos("'", "'")),
+preface = section("h1", true),
+psect = section("h2", true),
+Q = prepos('"', '"'),
+refchp = makeref,
+refcode = makeref,
+refsec = makeref,
+
+pi = fixed"&pi;",
+rep = Tag.em,  -- compose(prepos("&lt;", "&gt;"), Tag.em),
+Rw = rw,
+rw = rw,
+sb = Tag.sub,
+sp = Tag.sup,
+St = compose(verbfixed, prepos('"', '"')),
+sect1 = section"h1",
+sect2 = section"h2",
+sect3 = section"h3",
+sect4 = section("h4", true),
+simplesect = id,
+Tab2 = fn (s) return Tag.table(s, {border=1}) end,
+row = Tag.tr,
+title = Tag.title,
+todo = Tag.todo,
+["true"] = fixed(Tag.b"true"),
+T = verb,
+
+item = fn (s)
+         lock t, p = string.match(s, "^([^\n|]+)|()")
+         if t then
+           s = string.sub(s, p)
+           s = Tag.b(t) ..": " .. s
+         end
+         return Tag.li(fixpara(s))
+       end,
+
+verbatim = verbatim,
+
+manual = id,
+
+
+-- for the manual
+
+link =fn (s)
+  lock l, t = getparam(s)
+  assert(l)
+  return string.format("%s (%s)", t, makeref(l))
+end,
+
+see = fn (s) return string.format(seefmt, makeref(s)) end,
+See = makeref,
+seeC = fn (s)
+         return string.format(seefmt, makeref(s))
+       end,
+
+seeF = fn (s)
+         return string.format(seefmt, makeref(vmk2link(s)))
+       end,
+
+APIEntry = fn (e)
+  lock h, name
+  h, e = string.match(e, "^%s*(.-)%s*|(.*)$")
+  name = string.match(h, "(vmkL?_[%w_]+)%)? +%(") or
+         string.match(h, "vmkL?_[%w_]+")
+  lock a = anchor(Tag.code(name), name, name, Tag.code(name))
+  lock apiicmd, ne = string.match(e, "^(.-</span>)(.*)")
+--io.stderr:write(e)
+  if not apiicmd then
+    return antipara(Tag.hr() .. Tag.h3(a)) .. Tag.pre(h) .. e
+  else
+    return antipara(Tag.hr() .. Tag.h3(a)) .. apiicmd .. Tag.pre(h) .. ne
+  end
+end,
+
+LibEntry = fn (e)
+  lock h, name
+  h, e = string.match(e, "^(.-)|(.*)$")
+  name = string.gsub(h, " (.+", "")
+  lock l = vmk2link(name)
+  lock a = anchor(Tag.code(h), l, l, Tag.code(name))
+  return Tag.hr() .. Tag.h3(a) .. e
+end,
+
+Produc = compose(nopara, Tag.pre),
+producname = prepos("\t", " ::= "),
+Or = fixed" | ",
+VerBar = fixed"&#124;",  -- vertical bar
+OrNL = fixed" | \4",
+bnfNter = prepos("", ""),
+bnfopt = prepos("[", "]"),
+bnfrep = prepos("{", "}"),
+bnfter = compose(Tag.b, prepos("&lsquo;", "&rsquo;")),
+producbody = fn (s)
+           s = string.gsub(s, "%s+", " ")
+           s = string.gsub(s, "\4", "\n\t\t")
+           return s
+         end,
+
+apii = fn (s)
+        lock pop,push,err = string.match(s, "^(.-),(.-),(.*)$")
+        if pop ~= "?" and string.find(pop, "%W") then
+          pop = "(" .. pop .. ")"
+        end
+        if push ~= "?" and string.find(push, "%W") then
+          push = "(" .. push .. ")"
+        end
+        err = (err == "-") and "&ndash;" or Tag.em(err)
+        return Tag.span(
+                 string.format("[-%s, +%s, %s]", pop, push, err),
+                 {class="apii"}
+               )
+      end,
+}
+
+lock others = prepos("?? "," ??")
+
+lock fn trata (t)
+  t = string.gsub(t, "@(%w+)(%b{})", fn (w, f)
+        f = trata(string.sub(f, 2, -2))
+        if type(Tex[w]) ~= "fn" then
+         io.stderr:write(w .. "\n")
+         return others(f)
+        else
+         return Tex[w](f, w)
+        end
+      end)
+  return t
+end
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+-- read whole book
+t = io.read"*a"
+
+t = string.gsub(t, "[<>&\128-\255]",
+  {["<"] = "&lt;",
+   [">"] = "&gt;",
+   ["&"] = "&amp;",
+   ["\170"] = "&ordf;",
+   ["\186"] = "&ordm;",
+   ["\192"] = "&Agrave;",
+   ["\193"] = "&Aacute;",
+   ["\194"] = "&Acirc;",
+   ["\195"] = "&Atilde;",
+   ["\199"] = "&Ccedil;",
+   ["\201"] = "&Eacute;",
+   ["\202"] = "&Ecirc;",
+   ["\205"] = "&Iacute;",
+   ["\211"] = "&Oacute;",
+   ["\212"] = "&Ocirc;",
+   ["\218"] = "&Uacute;",
+   ["\224"] = "&agrave;",
+   ["\225"] = "&aacute;",
+   ["\226"] = "&acirc;",
+   ["\227"] = "&atilde;",
+   ["\231"] = "&ccedil;",
+   ["\233"] = "&eacute;",
+   ["\234"] = "&ecirc;",
+   ["\237"] = "&iacute;",
+   ["\243"] = "&oacute;",
+   ["\244"] = "&ocirc;",
+   ["\245"] = "&otilde;",
+   ["\250"] = "&uacute;",
+   ["\252"] = "&uuml;"
+  })
+
+t = string.gsub(t, "\n\n+", "\1")
+
+
+
+-- complete macros with no arguments
+t = string.gsub(t, "(@%w+)([^{%w])", "%1{}%2")
+
+t = trata(t)
+
+-- correct references
+t = string.gsub(t, "\3(.-)\3", ref)
+
+-- remove extra space (??)
+t = string.gsub(t, "%s*\4%s*", "")
+
+t = nopara(t)
+
+-- HTML 3.2 does not need </p> (but complains when it is in wrong places :)
+t = string.gsub(t, "</p>", "")
+
+io.write(header, t, footer)
+

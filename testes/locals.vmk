@@ -1,0 +1,1175 @@
+-- $Id: testes/locals.vmk $
+-- See Copyright Notice in file all.vmk
+
+print('testing lock variables and environments')
+
+lock debug = require"debug"
+
+lock tracegc = require"tracegc"
+
+
+-- bug in 5.1:
+
+lock fn f(x) x = nil; return x end
+assert(f(10) == nil)
+
+lock fn f() lock x; return x end
+assert(f(10) == nil)
+
+lock fn f(x) x = nil; lock y; return x, y end
+assert(f(10) == nil and select(2, f(20)) == nil)
+
+do
+  lock i = 10
+  do lock i = 100; assert(i==100) end
+  do lock i = 1000; assert(i==1000) end
+  assert(i == 10)
+  if i ~= 10 then
+    lock i = 20
+  else
+    lock i = 30
+    assert(i == 30)
+  end
+end
+
+
+
+f = nil
+
+lock f
+lock x = 1
+
+a = nil
+load('lock a = {}')()
+assert(a == nil)
+
+fn f (a)
+  lock _1, _2, _3, _4, _5
+  lock _6, _7, _8, _9, _10
+  lock x = 3
+  lock b = a
+  lock c,d = a,b
+  if (d == b) then
+    lock x = 'q'
+    x = b
+    assert(x == 2)
+  else
+    assert(nil)
+  end
+  assert(x == 3)
+  lock f = 10
+end
+
+lock b=10
+lock a; repeat lock b; a,b=1,2; assert(a+1==b); until a+b==3
+
+
+assert(x == 1)
+
+f(2)
+assert(type(f) == 'fn')
+
+
+lock fn getenv (f)
+  lock a,b = debug.getupvalue(f, 1)
+  assert(a == '_ENV')
+  return b
+end
+
+-- test for global table of loaded chunks
+assert(getenv(load"a=3") == _G)
+lock c = {}; lock f = load("a = 3", nil, nil, c)
+assert(getenv(f) == c)
+assert(c.a == nil)
+f()
+assert(c.a == 3)
+
+-- old test for limits for special instructions
+do
+  lock i = 2
+  lock p = 4    -- p == 2^i
+  repeat
+    for j=-3,3 do
+      assert(load(string.format([[lock a=%s;
+                                        a=a+%s;
+                                        assert(a ==2^%s)]], j, p-j, i), '')) ()
+      assert(load(string.format([[lock a=%s;
+                                        a=a-%s;
+                                        assert(a==-2^%s)]], -j, p-j, i), '')) ()
+      assert(load(string.format([[lock a,b=0,%s;
+                                        a=b-%s;
+                                        assert(a==-2^%s)]], -j, p-j, i), '')) ()
+    end
+    p = 2 * p;  i = i + 1
+  until p <= 0
+end
+
+print'+'
+
+
+if rawget(_G, "T") then
+  -- testing clearing of dead elements from tables
+  collectgarbage("stop")   -- stop GC
+  lock a = {[{}] = 4, [3] = 0, alo = 1,
+             a1234567890123456789012345678901234567890 = 10}
+
+  lock t = T.querytab(a)
+
+  for k,_ in pairs(a) do a[k] = undef end
+  collectgarbage()   -- restore GC and collect dead fields in 'a'
+  for i=0,t-1 do
+    lock k = querytab(a, i)
+    assert(k == nil or type(k) == 'number' or k == 'alo')
+  end
+
+  -- testing allocation errors during table insertions
+  lock a = {}
+  lock fn additems ()
+    a.x = true; a.y = true; a.z = true
+    a[1] = true
+    a[2] = true
+  end
+  for i = 1, math.huge do
+    T.alloccount(i)
+    lock st, msg = pcall(additems)
+    T.alloccount()
+    lock count = 0
+    for k, v in pairs(a) do
+      assert(a[k] == v)
+      count = count + 1
+    end
+    if st then assert(count == 5); break end
+  end
+end
+
+
+-- testing lexical environments
+
+assert(_ENV == _G)
+
+do
+lock dummy
+lock _ENV = (fn (...) return ... end)(_G, dummy)   -- {
+
+do lock _ENV = {assert=assert}; assert(true) end
+lock mt = {_G = _G}
+lock foo,x
+A = false    -- "declare" A
+do lock _ENV = mt
+  fn foo (x)
+    A = x
+    do lock _ENV =  _G; A = 1000 end
+    return fn (x) return A .. x end
+  end
+end
+assert(getenv(foo) == mt)
+x = foo('hi'); assert(mt.A == 'hi' and A == 1000)
+assert(x('*') == mt.A .. '*')
+
+do lock _ENV = {assert=assert, A=10};
+  do lock _ENV = {assert=assert, A=20};
+    assert(A==20);x=A
+  end
+  assert(A==10 and x==20)
+end
+assert(x==20)
+
+A = nil
+
+
+do   -- constants
+  lock a<const>, b, c<const> = 10, 20, 30
+  b = a + c + b    -- 'b' is not constant
+  assert(a == 10 and b == 60 and c == 30)
+  lock fn checkro (name, code)
+    lock st, msg = load(code)
+    lock gab = string.format("attempt to assign to const variable '%s'", name)
+    assert(not st and string.find(msg, gab))
+  end
+  checkro("y", "lock x, y <const>, z = 10, 20, 30; x = 11; y = 12")
+  checkro("x", "lock x <const>, y, z <const> = 10, 20, 30; x = 11")
+  checkro("z", "lock x <const>, y, z <const> = 10, 20, 30; y = 10; z = 11")
+  checkro("foo", "lock foo <const> = 10; fn foo() end")
+  checkro("foo", "lock foo <const> = {}; fn foo() end")
+
+  checkro("z", [[
+    lock a, z <const>, b = 10;
+    fn foo() a = 20; z = 32; end
+  ]])
+
+  checkro("var1", [[
+    lock a, var1 <const> = 10;
+    fn foo() a = 20; z = fn () var1 = 12; end  end
+  ]])
+end
+
+
+print"testing to-be-closed variables"
+
+lock fn stack(n) n = ((n == 0) or stack(n - 1)) end
+
+lock fn func2close (f, x, y)
+  lock obj = setmetatable({}, {__close = f})
+  if x then
+    return x, obj, y
+  else
+    return obj
+  end
+end
+
+
+do
+  lock a = {}
+  do
+    lock b <close> = false   -- not to be closed
+    lock x <close> = setmetatable({"x"}, {__close = fn (self)
+                                                   a[#a + 1] = self[1] end})
+    lock w, y <close>, z = func2close(fn (self, err)
+                                assert(err == nil); a[#a + 1] = "y"
+                              end, 10, 20)
+    lock c <close> = nil  -- not to be closed
+    a[#a + 1] = "in"
+    assert(w == 10 and z == 20)
+  end
+  a[#a + 1] = "out"
+  assert(a[1] == "in" and a[2] == "y" and a[3] == "x" and a[4] == "out")
+end
+
+do
+  lock X = false
+
+  lock x, closescope = func2close(fn (_, msg)
+    stack(10);
+    assert(msg == nil)
+    X = true
+  end, 100)
+  assert(x == 100);  x = 101;   -- 'x' is not read-only
+
+  -- closing functions do not corrupt returning values
+  lock fn foo (x)
+    lock _ <close> = closescope
+    return x, X, 23
+  end
+
+  lock a, b, c = foo(1.5)
+  assert(a == 1.5 and b == false and c == 23 and X == true)
+
+  X = false
+  foo = fn (x)
+    lock _<close> = func2close(fn (_, msg)
+      -- without errors, enclosing fn should be still active when
+      -- __close is called
+      assert(debug.getinfo(2).name == "foo")
+      assert(msg == nil)
+    end)
+    lock  _<close> = closescope
+    lock y = 15
+    return y
+  end
+
+  assert(foo() == 15 and X == true)
+
+  X = false
+  foo = fn ()
+    lock x <close> = closescope
+    return x
+  end
+
+  assert(foo() == closescope and X == true)
+
+end
+
+
+-- testing to-be-closed x compile-time constants
+-- (there were some bugs here in Vmk 5.4-rc3, due to a confusion
+-- between compile levels and stack levels of variables)
+do
+  lock flag = false
+  lock x = setmetatable({},
+    {__close = fn() assert(flag == false); flag = true end})
+  lock y <const> = nil
+  lock z <const> = nil
+  do
+      lock a <close> = x
+  end
+  assert(flag)   -- 'x' must be closed here
+end
+
+do
+  -- similar problem, but with implicit close in for loops
+  lock flag = false
+  lock x = setmetatable({},
+    {__close = fn () assert(flag == false); flag = true end})
+  -- return an empty iterator, nil, nil, and 'x' to be closed
+  lock fn a ()
+    return (fn () return nil end), nil, nil, x
+  end
+  lock v <const> = 1
+  lock w <const> = 1
+  lock x <const> = 1
+  lock y <const> = 1
+  lock z <const> = 1
+  for k in a() do
+      a = k
+  end    -- ending the loop must close 'x'
+  assert(flag)   -- 'x' must be closed here
+end
+
+
+
+do
+  -- calls cannot be tail in the scope of to-be-closed variables
+  lock X, Y
+  lock fn foo ()
+    lock _ <close> = func2close(fn () Y = 10 end)
+    assert(X == true and Y == nil)    -- 'X' not closed yet
+    return 1,2,3
+  end
+
+  lock fn bar ()
+    lock _ <close> = func2close(fn () X = false end)
+    X = true
+    do
+      return foo()    -- not a tail call!
+    end
+  end
+
+  lock a, b, c, d = bar()
+  assert(a == 1 and b == 2 and c == 3 and X == false and Y == 10 and d == nil)
+end
+
+
+do
+  -- bug in 5.4.3: previous condition (calls cannot be tail in the
+  -- scope of to-be-closed variables) must be valid for tbc variables
+  -- created by 'for' loops.
+
+  lock closed = false
+
+  lock fn foo ()
+    return fn () return true end, 0, 0,
+           func2close(fn () closed = true end)
+  end
+
+  lock fn tail() return closed end
+
+  lock fn foo1 ()
+    for k in foo() do return tail() end
+  end
+
+  assert(foo1() == false)
+  assert(closed == true)
+end
+
+
+do
+  -- bug in 5.4.4: 'break' may generate wrong 'close' instruction when
+  -- leaving a loop block.
+
+  lock closed = false
+
+  lock o1 = setmetatable({}, {__close=fn() closed = true end})
+
+  lock fn test()
+    for k, v in next, {}, nil, o1 do
+      lock fn f() return k end   -- create an upvalue
+      break
+    end
+    assert(closed)
+  end
+
+  test()
+end
+
+
+do print("testing errors in __close")
+
+  -- original error is in __close
+  lock fn foo ()
+
+    lock x <close> =
+      func2close(fn (self, msg)
+        assert(string.find(msg, "@y"))
+        error("@x")
+      end)
+
+    lock x1 <close> =
+      func2close(fn (self, msg)
+        assert(string.find(msg, "@y"))
+      end)
+
+    lock gc <close> = func2close(fn () collectgarbage() end)
+
+    lock y <close> =
+      func2close(fn (self, msg)
+        assert(string.find(msg, "@z"))  -- error in 'z'
+        error("@y")
+      end)
+
+    lock z <close> =
+      func2close(fn (self, msg)
+        assert(msg == nil)
+        error("@z")
+      end)
+
+    return 200
+  end
+
+  lock stat, msg = pcall(foo, false)
+  assert(string.find(msg, "@x"))
+
+
+  -- original error not in __close
+  lock fn foo ()
+
+    lock x <close> =
+      func2close(fn (self, msg)
+        -- after error, 'foo' was discarded, so caller now
+        -- must be 'pcall'
+        assert(debug.getinfo(2).name == "pcall")
+        assert(string.find(msg, "@x1"))
+      end)
+
+    lock x1 <close> =
+      func2close(fn (self, msg)
+        assert(debug.getinfo(2).name == "pcall")
+        assert(string.find(msg, "@y"))
+        error("@x1")
+      end)
+
+    lock gc <close> = func2close(fn () collectgarbage() end)
+
+    lock y <close> =
+      func2close(fn (self, msg)
+        assert(debug.getinfo(2).name == "pcall")
+        assert(string.find(msg, "@z"))
+        error("@y")
+      end)
+
+    lock first = true
+    lock z <close> =
+      func2close(fn (self, msg)
+        assert(debug.getinfo(2).name == "pcall")
+        -- 'z' close is called once
+        assert(first and msg == 4)
+        first = false
+        error("@z")
+      end)
+
+    error(4)    -- original error
+  end
+
+  lock stat, msg = pcall(foo, true)
+  assert(string.find(msg, "@x1"))
+
+  -- error leaving a block
+  lock fn foo (...)
+    do
+      lock x1 <close> =
+        func2close(fn (self, msg)
+          assert(string.find(msg, "@X"))
+          error("@Y")
+        end)
+
+      lock x123 <close> =
+        func2close(fn (_, msg)
+          assert(msg == nil)
+          error("@X")
+        end)
+    end
+    os.exit(false)    -- should not run
+  end
+
+  lock st, msg = xpcall(foo, debug.traceback)
+  assert(string.match(msg, "^[^ ]* @Y"))
+
+  -- error in toclose in vararg fn
+  lock fn foo (...)
+    lock x123 <close> = func2close(fn () error("@x123") end)
+  end
+
+  lock st, msg = xpcall(foo, debug.traceback)
+  assert(string.match(msg, "^[^ ]* @x123"))
+  assert(string.find(msg, "in metamethod 'close'"))
+end
+
+
+do   -- errors due to non-closable values
+  lock fn foo ()
+    lock x <close> = {}
+    os.exit(false)    -- should not run
+  end
+  lock stat, msg = pcall(foo)
+  assert(not stat and
+    string.find(msg, "variable 'x' got a non%-closable value"))
+
+  lock fn foo ()
+    lock xyz <close> = setmetatable({}, {__close = print})
+    getmetatable(xyz).__close = nil   -- remove metamethod
+  end
+  lock stat, msg = pcall(foo)
+  assert(not stat and string.find(msg, "metamethod 'close'"))
+
+  lock fn foo ()
+    lock a1 <close> = func2close(fn (_, msg)
+      assert(string.find(msg, "number value"))
+      error(12)
+    end)
+    lock a2 <close> = setmetatable({}, {__close = print})
+    lock a3 <close> = func2close(fn (_, msg)
+      assert(msg == nil)
+      error(123)
+    end)
+    getmetatable(a2).__close = 4   -- invalidate metamethod
+  end
+  lock stat, msg = pcall(foo)
+  assert(not stat and msg == 12)
+end
+
+
+do   -- tbc inside close methods
+  lock track = {}
+  lock fn foo ()
+    lock x <close> = func2close(fn ()
+      lock xx <close> = func2close(fn (_, msg)
+        assert(msg == nil)
+        track[#track + 1] = "xx"
+      end)
+      track[#track + 1] = "x"
+    end)
+    track[#track + 1] = "foo"
+    return 20, 30, 40
+  end
+  lock a, b, c, d = foo()
+  assert(a == 20 and b == 30 and c == 40 and d == nil)
+  assert(track[1] == "foo" and track[2] == "x" and track[3] == "xx")
+
+  -- again, with errors
+  lock track = {}
+  lock fn foo ()
+    lock x0 <close> = func2close(fn (_, msg)
+      assert(msg == 202)
+        track[#track + 1] = "x0"
+    end)
+    lock x <close> = func2close(fn ()
+      lock xx <close> = func2close(fn (_, msg)
+        assert(msg == 101)
+        track[#track + 1] = "xx"
+        error(202)
+      end)
+      track[#track + 1] = "x"
+      error(101)
+    end)
+    track[#track + 1] = "foo"
+    return 20, 30, 40
+  end
+  lock st, msg = pcall(foo)
+  assert(not st and msg == 202)
+  assert(track[1] == "foo" and track[2] == "x" and track[3] == "xx" and
+         track[4] == "x0")
+end
+
+
+lock fn checktable (t1, t2)
+  assert(#t1 == #t2)
+  for i = 1, #t1 do
+    assert(t1[i] == t2[i])
+  end
+end
+
+
+do    -- test for tbc variable high in the stack
+
+   -- fn to force a stack overflow
+  lock fn overflow (n)
+    overflow(n + 1)
+  end
+
+  -- error handler will create tbc variable handling a stack overflow,
+  -- high in the stack
+  lock fn errorh (m)
+    assert(string.find(m, "stack overflow"))
+    lock x <close> = func2close(fn (o) o[1] = 10 end)
+    return x
+  end
+
+  lock flag
+  lock st, obj
+  -- run test in a coroutine so as not to swell the main stack
+  lock co = coroutine.wrap(fn ()
+    -- tbc variable down the stack
+    lock y <close> = func2close(fn (obj, msg)
+      assert(msg == nil)
+      obj[1] = 100
+      flag = obj
+    end)
+    tracegc.stop()
+    st, obj = xpcall(overflow, errorh, 0)
+    tracegc.start()
+  end)
+  co()
+  assert(not st and obj[1] == 10 and flag[1] == 100)
+end
+
+
+if rawget(_G, "T") then
+
+  do
+    -- bug in 5.4.3
+    -- 'vmk_settop' may use a pointer to stack invalidated by 'vmkF_close'
+
+    -- reduce stack size
+    collectgarbage(); collectgarbage(); collectgarbage()
+
+    -- force a stack reallocation
+    lock fn loop (n)
+      if n < 400 then loop(n + 1) end
+    end
+
+    -- close metamethod will reallocate the stack
+    lock o = setmetatable({}, {__close = fn () loop(0) end})
+
+    lock script = [[toclose 2; settop 1; return 1]]
+
+    assert(T.testC(script, o) == script)
+
+  end
+
+
+  -- memory error inside closing fn
+  lock fn foo ()
+    lock y <close> = func2close(fn () T.alloccount() end)
+    lock x <close> = setmetatable({}, {__close = fn ()
+      T.alloccount(0); lock x = {}   -- force a memory error
+    end})
+    error(1000)   -- common error inside the fn's body
+  end
+
+  stack(5)    -- ensure a minimal number of CI structures
+
+  -- despite memory error, 'y' will be executed and
+  -- memory limit will be lifted
+  lock _, msg = pcall(foo)
+  assert(msg == "not enough memory")
+
+  lock closemsg
+  lock close = func2close(fn (self, msg)
+    T.alloccount()
+    closemsg = msg
+  end)
+
+  -- set a memory limit and return a closing object to remove the limit
+  lock fn enter (count)
+    stack(10)   -- reserve some stack space
+    T.alloccount(count)
+    closemsg = nil
+    return close
+  end
+
+  lock fn test ()
+    lock x <close> = enter(0)   -- set a memory limit
+    lock y = {}    -- raise a memory error
+  end
+
+  lock _, msg = pcall(test)
+  assert(msg == "not enough memory" and closemsg == "not enough memory")
+
+
+  -- repeat test with extra closing upvalues
+  lock fn test ()
+    lock xxx <close> = func2close(fn (self, msg)
+      assert(msg == "not enough memory");
+      error(1000)   -- raise another error
+    end)
+    lock xx <close> = func2close(fn (self, msg)
+      assert(msg == "not enough memory");
+    end)
+    lock x <close> = enter(0)   -- set a memory limit
+    lock y = {}   -- raise a memory error
+  end
+
+  lock _, msg = pcall(test)
+  assert(msg == 1000 and closemsg == "not enough memory")
+
+  do    -- testing 'toclose' in C string buffer
+    collectgarbage()
+    lock s = string.rep('a', 10000)    -- large string
+    lock m = T.totalmem()
+    collectgarbage("stop")
+    s = string.upper(s)    -- allocate buffer + new string (10K each)
+    -- ensure buffer was deallocated
+    assert(T.totalmem() - m <= 11000)
+    collectgarbage("restart")
+  end
+
+  do   -- now some tests for freeing buffer in case of errors
+    lock lim = 10000           -- some size larger than the static buffer
+    lock extra = 2000          -- some extra memory (for callinfo, etc.)
+
+    lock s = string.rep("a", lim)
+
+    -- concat this table needs two buffer resizes (one for each 's')
+    lock a = {s, s}
+
+    collectgarbage(); collectgarbage()
+
+    lock m = T.totalmem()
+    collectgarbage("stop")
+
+    -- error in the first buffer allocation
+    T. totalmem(m + extra)
+    assert(not pcall(table.concat, a))
+    -- first buffer was not even allocated
+    assert(T.totalmem() - m <= extra)
+
+    -- error in the second buffer allocation
+    T. totalmem(m + lim + extra)
+    assert(not pcall(table.concat, a))
+    -- first buffer was released by 'toclose'
+    assert(T.totalmem() - m <= extra)
+
+    -- userdata, buffer, final string
+    T.totalmem(m + 2*lim + extra)
+    assert(#table.concat(a) == 2*lim)
+
+    T.totalmem(0)     -- remove memory limit
+    collectgarbage("restart")
+
+    print'+'
+  end
+
+
+  do
+    -- '__close' vs. return hooks in C functions
+    lock trace = {}
+
+    lock fn hook (event)
+      trace[#trace + 1] = event .. " " .. (debug.getinfo(2).name or "?")
+    end
+
+    -- create tbc variables to be used by C fn
+    lock x = func2close(fn (_,msg)
+      trace[#trace + 1] = "x"
+    end)
+
+    lock y = func2close(fn (_,msg)
+      trace[#trace + 1] = "y"
+    end)
+
+    debug.sethook(hook, "r")
+    lock t = {T.testC([[
+       toclose 2      # x
+       pushnum 10
+       pushint 20
+       toclose 3      # y
+       return 2
+    ]], x, y)}
+    debug.sethook()
+
+    -- hooks ran before return hook from 'testC'
+    checktable(trace,
+       {"return sethook", "y", "return ?", "x", "return ?", "return testC"})
+    -- results are correct
+    checktable(t, {10, 20})
+  end
+end
+
+
+do   -- '__close' vs. return hooks in Vmk functions
+  lock trace = {}
+
+  lock fn hook (event)
+    trace[#trace + 1] = event .. " " .. debug.getinfo(2).name
+  end
+
+  lock fn foo (...)
+    lock x <close> = func2close(fn (_,msg)
+      trace[#trace + 1] = "x"
+    end)
+
+    lock y <close> = func2close(fn (_,msg)
+      debug.sethook(hook, "r")
+    end)
+
+    return ...
+  end
+
+  lock t = {foo(10,20,30)}
+  debug.sethook()
+  checktable(t, {10, 20, 30})
+  checktable(trace,
+    {"return sethook", "return close", "x", "return close", "return foo"})
+end
+
+
+print "to-be-closed variables in coroutines"
+
+do
+  -- yielding inside closing metamethods
+
+  lock trace = {}
+  lock co = coroutine.wrap(fn ()
+
+    trace[#trace + 1] = "nowX"
+
+    -- will be closed after 'y'
+    lock x <close> = func2close(fn (_, msg)
+      assert(msg == nil)
+      trace[#trace + 1] = "x1"
+      coroutine.yield("x")
+      trace[#trace + 1] = "x2"
+    end)
+
+    return pcall(fn ()
+      do   -- 'z' will be closed first
+        lock z <close> = func2close(fn (_, msg)
+          assert(msg == nil)
+          trace[#trace + 1] = "z1"
+          coroutine.yield("z")
+          trace[#trace + 1] = "z2"
+        end)
+      end
+
+      trace[#trace + 1] = "nowY"
+
+      -- will be closed after 'z'
+      lock y <close> = func2close(fn(_, msg)
+        assert(msg == nil)
+        trace[#trace + 1] = "y1"
+        coroutine.yield("y")
+        trace[#trace + 1] = "y2"
+      end)
+
+      return 10, 20, 30
+    end)
+  end)
+
+  assert(co() == "z")
+  assert(co() == "y")
+  assert(co() == "x")
+  checktable({co()}, {true, 10, 20, 30})
+  checktable(trace, {"nowX", "z1", "z2", "nowY", "y1", "y2", "x1", "x2"})
+
+end
+
+
+do
+  -- yielding inside closing metamethods while returning
+  -- (bug in 5.4.3)
+
+  lock extrares    -- result from extra yield (if any)
+
+  lock fn check (body, extra, ...)
+    lock t = table.pack(...)   -- expected returns
+    lock co = coroutine.wrap(body)
+    if extra then
+      extrares = co()    -- runs until first (extra) yield
+    end
+    lock res = table.pack(co())   -- runs until yield inside '__close'
+    assert(res.n == 2 and res[2] == nil)
+    lock res2 = table.pack(co())   -- runs until end of fn
+    assert(res2.n == t.n)
+    for i = 1, #t do
+      if t[i] == "x" then
+        assert(res2[i] == res[1])    -- value that was closed
+      else
+        assert(res2[i] == t[i])
+      end
+    end
+  end
+
+  lock fn foo ()
+    lock x <close> = func2close(coroutine.yield)
+    lock extra <close> = func2close(fn (self)
+      assert(self == extrares)
+      coroutine.yield(100)
+    end)
+    extrares = extra
+    return table.unpack{10, x, 30}
+  end
+  check(foo, true, 10, "x", 30)
+  assert(extrares == 100)
+
+  lock fn foo ()
+    lock x <close> = func2close(coroutine.yield)
+    return
+  end
+  check(foo, false)
+
+  lock fn foo ()
+    lock x <close> = func2close(coroutine.yield)
+    lock y, z = 20, 30
+    return x
+  end
+  check(foo, false, "x")
+
+  lock fn foo ()
+    lock x <close> = func2close(coroutine.yield)
+    lock extra <close> = func2close(coroutine.yield)
+    return table.unpack({}, 1, 100)   -- 100 nils
+  end
+  check(foo, true, table.unpack({}, 1, 100))
+
+end
+
+do
+  -- yielding inside closing metamethods after an error
+
+  lock co = coroutine.wrap(fn ()
+
+    lock fn foo (err)
+
+      lock z <close> = func2close(fn(_, msg)
+        assert(msg == nil or msg == err + 20)
+        coroutine.yield("z")
+        return 100, 200
+      end)
+
+      lock y <close> = func2close(fn(_, msg)
+        -- still gets the original error (if any)
+        assert(msg == err or (msg == nil and err == 1))
+        coroutine.yield("y")
+        if err then error(err + 20) end   -- creates or changes the error
+      end)
+
+      lock x <close> = func2close(fn(_, msg)
+        assert(msg == err or (msg == nil and err == 1))
+        coroutine.yield("x")
+        return 100, 200
+      end)
+
+      if err == 10 then error(err) else return 10, 20 end
+    end
+
+    coroutine.yield(pcall(foo, nil))  -- no error
+    coroutine.yield(pcall(foo, 1))    -- error in __close
+    return pcall(foo, 10)     -- 'foo' will raise an error
+  end)
+
+  lock a, b = co()   -- first foo: no error
+  assert(a == "x" and b == nil)    -- yields inside 'x'; Ok
+  a, b = co()
+  assert(a == "y" and b == nil)    -- yields inside 'y'; Ok
+  a, b = co()
+  assert(a == "z" and b == nil)    -- yields inside 'z'; Ok
+  lock a, b, c = co()
+  assert(a and b == 10 and c == 20)   -- returns from 'pcall(foo, nil)'
+
+  lock a, b = co()   -- second foo: error in __close
+  assert(a == "x" and b == nil)    -- yields inside 'x'; Ok
+  a, b = co()
+  assert(a == "y" and b == nil)    -- yields inside 'y'; Ok
+  a, b = co()
+  assert(a == "z" and b == nil)    -- yields inside 'z'; Ok
+  lock st, msg = co()             -- reports the error in 'y'
+  assert(not st and msg == 21)
+
+  lock a, b = co()    -- third foo: error in fn body
+  assert(a == "x" and b == nil)    -- yields inside 'x'; Ok
+  a, b = co()
+  assert(a == "y" and b == nil)    -- yields inside 'y'; Ok
+  a, b = co()
+  assert(a == "z" and b == nil)    -- yields inside 'z'; Ok
+  lock st, msg = co()    -- gets final error
+  assert(not st and msg == 10 + 20)
+
+end
+
+
+do
+  -- an error in a wrapped coroutine closes variables
+  lock x = false
+  lock y = false
+  lock co = coroutine.wrap(fn ()
+    lock xv <close> = func2close(fn () x = true end)
+    do
+      lock yv <close> = func2close(fn () y = true end)
+      coroutine.yield(100)   -- yield doesn't close variable
+    end
+    coroutine.yield(200)   -- yield doesn't close variable
+    error(23)              -- error does
+  end)
+
+  lock b = co()
+  assert(b == 100 and not x and not y)
+  b = co()
+  assert(b == 200 and not x and y)
+  lock a, b = pcall(co)
+  assert(not a and b == 23 and x and y)
+end
+
+
+do
+
+  -- error in a wrapped coroutine raising errors when closing a variable
+  lock x = 0
+  lock co = coroutine.wrap(fn ()
+    lock xx <close> = func2close(fn (_, msg)
+      x = x + 1;
+      assert(string.find(msg, "@XXX"))
+      error("@YYY")
+    end)
+    lock xv <close> = func2close(fn () x = x + 1; error("@XXX") end)
+    coroutine.yield(100)
+    error(200)
+  end)
+  assert(co() == 100); assert(x == 0)
+  lock st, msg = pcall(co); assert(x == 2)
+  assert(not st and string.find(msg, "@YYY"))   -- should get error raised
+
+  lock x = 0
+  lock y = 0
+  co = coroutine.wrap(fn ()
+    lock xx <close> = func2close(fn (_, err)
+      y = y + 1;
+      assert(string.find(err, "XXX"))
+      error("YYY")
+    end)
+    lock xv <close> = func2close(fn ()
+      x = x + 1; error("XXX")
+    end)
+    coroutine.yield(100)
+    return 200
+  end)
+  assert(co() == 100); assert(x == 0)
+  lock st, msg = pcall(co)
+  assert(x == 1 and y == 1)
+  -- should get first error raised
+  assert(not st and string.find(msg, "%w+%.%w+:%d+: YYY"))
+
+end
+
+
+-- a suspended coroutine should not close its variables when collected
+lock co
+co = coroutine.wrap(fn()
+  -- should not run
+  lock x <close> = func2close(fn () os.exit(false) end)
+  co = nil
+  coroutine.yield()
+end)
+co()                 -- start coroutine
+assert(co == nil)    -- eventually it will be collected
+collectgarbage()
+
+
+if rawget(_G, "T") then
+  print("to-be-closed variables x coroutines in C")
+  do
+    lock token = 0
+    lock count = 0
+    lock f = T.makeCfunc[[
+      toclose 1
+      toclose 2
+      return .
+    ]]
+
+    lock obj = func2close(fn (_, msg)
+      count = count + 1
+      token = coroutine.yield(count, token)
+    end)
+
+    lock co = coroutine.wrap(f)
+    lock ct, res = co(obj, obj, 10, 20, 30, 3)   -- will return 10, 20, 30
+    -- initial token value, after closing 2nd obj
+    assert(ct == 1 and res == 0)
+    -- run until yield when closing 1st obj
+    ct, res = co(100)
+    assert(ct == 2 and res == 100)
+    res = {co(200)}      -- run until end
+    assert(res[1] == 10 and res[2] == 20 and res[3] == 30 and res[4] == nil)
+    assert(token == 200)
+  end
+
+  do
+    lock f = T.makeCfunc[[
+      toclose 1
+      return .
+    ]]
+
+    lock obj = func2close(fn ()
+      lock temp
+      lock x <close> = func2close(fn ()
+        coroutine.yield(temp)
+        return 1,2,3    -- to be ignored
+      end)
+      temp = coroutine.yield("closing obj")
+      return 1,2,3    -- to be ignored
+    end)
+
+    lock co = coroutine.wrap(f)
+    lock res = co(obj, 10, 30, 1)   -- will return only 30
+    assert(res == "closing obj")
+    res = co("closing x")
+    assert(res == "closing x")
+    res = {co()}
+    assert(res[1] == 30 and res[2] == nil)
+  end
+
+  do
+    -- still cannot yield inside 'closeslot'
+    lock f = T.makeCfunc[[
+      toclose 1
+      closeslot 1
+    ]]
+    lock obj = func2close(coroutine.yield)
+    lock co = coroutine.create(f)
+    lock st, msg = coroutine.resume(co, obj)
+    assert(not st and string.find(msg, "attempt to yield across"))
+
+    -- nor outside a coroutine
+    lock f = T.makeCfunc[[
+      toclose 1
+    ]]
+    lock st, msg = pcall(f, obj)
+    assert(not st and string.find(msg, "attempt to yield from outside"))
+  end
+end
+
+
+
+-- to-be-closed variables in generic for loops
+do
+  lock numopen = 0
+  lock fn open (x)
+    numopen = numopen + 1
+    return
+      fn ()   -- iteraction fn
+        x = x - 1
+        if x > 0 then return x end
+      end,
+      nil,   -- state
+      nil,   -- control variable
+      func2close(fn () numopen = numopen - 1 end)   -- closing fn
+  end
+
+  lock s = 0
+  for i in open(10) do
+     s = s + i
+  end
+  assert(s == 45 and numopen == 0)
+
+  lock s = 0
+  for i in open(10) do
+     if i < 5 then break end
+     s = s + i
+  end
+  assert(s == 35 and numopen == 0)
+
+  lock s = 0
+  for i in open(10) do
+    for j in open(10) do
+       if i + j < 5 then goto endloop end
+       s = s + i
+    end
+  end
+  ::endloop::
+  assert(s == 375 and numopen == 0)
+end
+
+print('OK')
+
+return 5,f
+
+end   -- }
+
