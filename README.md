@@ -22,7 +22,7 @@ language.
 
 1. Clone the repository:
    ```bash
-   git clone https://gilarb@bitbucket.org/nginr/vmk-lang.git
+   git clone https://github.com/nginrsw/vmk-lang.git
    cd vmk
    ```
 
