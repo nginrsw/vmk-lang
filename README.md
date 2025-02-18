@@ -4,7 +4,7 @@ Programming Language
 
 <img src="img/vmk.png" alt="vmk" width="200"/>
 
-VMKs (fou·em·ka) is a Lua Dialect Programming language, This modification has
+VMK (fou·em·ka) is a Lua Dialect Programming language, This modification has
 been made to simplify learning, writing, and personalizing the language for my
 own use.
 
