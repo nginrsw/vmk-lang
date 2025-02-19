@@ -62,12 +62,12 @@ executable files located in the `transpiler` folder.
 
 You can easily run these using the following commands:
 
-- **From Lua to Ilya**, just run `lua2vmk` inside current directory:
+- **From Lua to VMK**, just run `lua2vmk` inside current directory:
   ```bash
   ./lua2vmk
   ```
 
-- **From Ilya to Lua**, it's similar, run `vmk2lua` inside of ur current
+- **From VMK to Lua**, it's similar, run `vmk2lua` inside of ur current
   directory:
   ```bash
   ./vmk2lua
