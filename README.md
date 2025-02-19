@@ -1,4 +1,4 @@
-## Vereinfachte Maschinenkommunikation
+## Vereinfachte Maschinenkommunika
 
 Programming Language
 
