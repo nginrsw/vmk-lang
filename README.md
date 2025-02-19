@@ -46,7 +46,7 @@ language.
 
 Once this is done, you can run the `vmk` command from anywhere in your terminal!
 
-For example, create a file named `file.vmk`, type `io.write("Hello Ilya\n")`
+For example, create a file named `file.vmk`, type `io.write("Hello VMK\n")`
 inside it, and run it with the following command:
 
 ```bash
@@ -57,17 +57,17 @@ vmk file.vmk
 
 ## Transpiling Between Lua and VMK
 
-If you wish to transpile code from Lua to Ilya or from Ilya to Lua, I’ve
-prepared executable files located in the `transpiler` folder.
+If you wish to transpile code from Lua to VMK or from VMK to Lua, I’ve prepared
+executable files located in the `transpiler` folder.
 
 You can easily run these using the following commands:
 
-- **From Lua to Ilya**, just run `lua2ilya` inside current directory:
+- **From Lua to Ilya**, just run `lua2vmk` inside current directory:
   ```bash
   ./lua2vmk
   ```
 
-- **From Ilya to Lua**, it's similar, run `ilya2lua` inside of ur current
+- **From Ilya to Lua**, it's similar, run `vmk2lua` inside of ur current
   directory:
   ```bash
   ./vmk2lua
