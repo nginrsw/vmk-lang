@@ -55,7 +55,7 @@ vmk file.vmk
 
 ---
 
-## Transpiling Between Lua and Ilya
+## Transpiling Between Lua and VMK
 
 If you wish to transpile code from Lua to Ilya or from Ilya to Lua, I’ve
 prepared executable files located in the `transpiler` folder.
