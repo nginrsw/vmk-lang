@@ -4,9 +4,9 @@ Programming Language
 
 <img src="img/vmk.png" alt="vmk" width="200"/>
 
-VMK (fou·em·ka) is a Lua Dialect Programming language, This modification has
-been made to simplify learning, writing, and personalizing the language for my
-own use.
+VMK (fou·em·ka) is a [Lua](https://github.com/lua/lua) Dialect Programming
+language, This modification has been made to simplify learning, writing, and
+personalizing the language for my own use.
 
 For now, two main changes have been implemented:
 
