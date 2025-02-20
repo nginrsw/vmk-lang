@@ -42,7 +42,7 @@ VMKMOD_API int (vmkopen_math) (vmk_State *L);
 #define VMK_OSLIBK	(VMK_MATHLIBK << 1)
 VMKMOD_API int (vmkopen_os) (vmk_State *L);
 
-#define VMK_STRLIBNAME	"string"
+#define VMK_STRLIBNAME	"str"
 #define VMK_STRLIBK	(VMK_OSLIBK << 1)
 VMKMOD_API int (vmkopen_string) (vmk_State *L);
 

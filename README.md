@@ -12,6 +12,8 @@ For now, two main changes have been implemented:
 
 - The reserved word `local` has been replaced with `lock`.
 - The reserved word `function` has been replaced with `fn`.
+- The standard library namespace `string` has been renamed to `str` (e.g.,
+  `string.upper("vmk")` → `str.upper("vmk")`).
 
 Other than these changes, everything remains identical to the original Lua
 language.
