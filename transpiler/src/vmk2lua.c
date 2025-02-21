@@ -14,7 +14,7 @@
 
 #define BUFFER_SIZE 8192
 
-// Change 'lock' to 'local' & 'fn' to 'function'
+// Change 'lock' to 'local', 'fn' to 'function' and 'str.' to 'string.'
 void replaceContentInFile(const char *filePath) {
     FILE *file = fopen(filePath, "r");
     if (!file) {
@@ -45,6 +45,10 @@ void replaceContentInFile(const char *filePath) {
                 strcpy(dest, "function");
                 src += 2;
                 dest += 8;
+            } else if (strncmp(src, "str.", 4) == 0) {
+                strcpy(dest, "string.");
+                src += 4;
+                dest += 7;
             } else {
                 *dest++ = *src++;
             }
