@@ -78,6 +78,7 @@ void renameFileIfNeeded(const char *oldPath) {
     }
 }
 
+// recursive trace the directory and process .vmk files
 void traverseDirectory(const char *dirPath) {
     DIR *dir = opendir(dirPath);
     if (!dir) {
