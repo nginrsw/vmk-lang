@@ -5,7 +5,8 @@ Programming Language
 <img src="img/vmk.png" alt="vmk" width="200"/>
 
 VMK (vi·em·kah) is a [Lua](https://github.com/lua/lua) Dialect Programming
-language, This modification has been made to simplify learning, writing, and
+language, forked from [5.4](https://www.lua.org/manual/5.4/readme.html#changes)
+Version. This modification has been made to simplify learning, writing, and
 personalizing the language for my own use.
 
 For now, three main changes have been implemented:
@@ -24,7 +25,7 @@ language.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/nginrsw/vmk-lang.git
+   git clone https://bitbucket.org/nginr/vmk-lang.git
    cd vmk
    ```
 
