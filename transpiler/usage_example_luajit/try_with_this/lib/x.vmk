@@ -1,5 +1,5 @@
-lock x = 10
+lock x = "sukses"
 
 fn x_head()
-	return x
+	return(str.upper(x))
 end

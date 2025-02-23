@@ -1,5 +1,5 @@
-lock y = 20
+lock y = "SELALU"
 
 fn y_head()
-	return y
+	return(str.lower(y))
 end

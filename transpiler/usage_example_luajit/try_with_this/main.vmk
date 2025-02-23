@@ -3,8 +3,12 @@ require 'lib/y'
 
 lock ax = x_head()
 lock ay = y_head()
-lock z = ax * ay
+lock z = (ax.." "..str.upper(ay))
 
-print(x_head)
-print(y_head)
-print(z)
+fn main()
+	print(ax)
+	print(ay)
+	print(z)
+end
+
+main()
