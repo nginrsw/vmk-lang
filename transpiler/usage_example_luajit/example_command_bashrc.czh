@@ -1,4 +1,5 @@
 // We will try our two transpiler using luaJIT.
+// Make sure LuaJIT is installed on your computer.
 // Add the following code to your .bashrc after creating a symlink for vmk2lua and lua2vmk,  
 // Then, run -> source .bashrc or simply close and reopen your terminal,
 // After that, you can run it from the root of your project by typing vxl,  
