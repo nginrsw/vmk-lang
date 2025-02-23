@@ -1,0 +1,5 @@
+lock y = 20
+
+fn y_head()
+	return y
+end

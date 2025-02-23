@@ -1,0 +1,5 @@
+lock x = 10
+
+fn x_head()
+	return x
+end

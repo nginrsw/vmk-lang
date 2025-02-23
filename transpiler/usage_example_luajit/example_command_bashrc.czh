@@ -1,0 +1,32 @@
+// We will try our two transpiler using luaJIT.
+// Add the following code to your .bashrc after creating a symlink for vmk2lua and lua2vmk,  
+// Then, run -> source .bashrc or simply close and reopen your terminal,
+// After that, you can run it from the root of your project by typing vxl,  
+// Feel free to replace main.lua and app.lua with any other .lua file as your entry point.  
+
+// Try it with try_with_this/ directory outside this note.
+
+vxl() {
+    vmk2lua  
+    if [ -f "main.lua" ]; then
+        luajit main.lua
+        status=$?
+    elif [ -f "app.lua" ]; then
+        luajit app.lua
+        status=$?
+    else
+        echo "No main.lua or app.lua found."
+        echo "Reverting all files back to .vmk"
+        lua2vmk
+        return 1
+    fi
+
+    # Always revert files back to .vmk
+    if [ $status -ne 0 ]; then
+        echo "Error running Lua file. Reverting all files back to .vmk"
+    else
+        echo "Execution finished successfully. Reverting all files back to .vmk"
+    fi
+    
+    lua2vmk
+}

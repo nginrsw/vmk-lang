@@ -1,0 +1,10 @@
+require 'lib/x'
+require 'lib/y'
+
+lock ax = x_head()
+lock ay = y_head()
+lock z = ax * ay
+
+print(x_head)
+print(y_head)
+print(z)
