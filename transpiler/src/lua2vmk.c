@@ -45,7 +45,8 @@ void replaceContentInFile(const char *filePath) {
                 strcpy(dest, "fn");
                 src += 8;
                 dest += 2;
-            } else if (strncmp(src, "string.", 7) == 0) {
+            } else if ((src == buffer || (!isalnum((unsigned char)src[-1]) && src[-1] != '_')) 
+                && strncmp(src, "string.", 7) == 0) {
                 strcpy(dest, "str.");
                 src += 7;
                 dest += 4;

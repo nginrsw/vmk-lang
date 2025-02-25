@@ -45,11 +45,13 @@ void replaceContentInFile(const char *filePath) {
                 strcpy(dest, "function");
                 src += 2;
                 dest += 8;
-            } else if (strncmp(src, "str.", 4) == 0) {
-                strcpy(dest, "string.");
-                src += 4;
-                dest += 7;
-            } else {
+			} else if ((src == buffer || (!isalnum((unsigned char)src[-1]) && src[-1] != '_')) 
+			    && strncmp(src, "str.", 4) == 0) {
+			    strcpy(dest, "string.");
+			    src += 4;
+			    dest += 7;
+			}
+			 else {
                 *dest++ = *src++;
             }
         }
