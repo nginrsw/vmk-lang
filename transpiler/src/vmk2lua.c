@@ -39,7 +39,7 @@ void replaceContentInFile(const char *filePath) {
         while (*src) {
             if (strncmp(src, "lck", 3) == 0 && !isalnum((unsigned char)src[3])) {
                 strcpy(dest, "local");
-                src += 4;
+                src += 3;
                 dest += 5;
             } else if (strncmp(src, "fn", 2) == 0 && !isalnum((unsigned char)src[2])) {
                 strcpy(dest, "function");
