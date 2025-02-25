@@ -3,11 +3,11 @@
 
 print "testing coroutines"
 
-lock debug = require'debug'
+lck debug = require'debug'
 
-lock f
+lck f
 
-lock main, ismain = coroutine.running()
+lck main, ismain = coroutine.running()
 assert(type(main) == "thread" and ismain)
 assert(not coroutine.resume(main))
 assert(not coroutine.isyieldable(main) and not coroutine.isyieldable())
@@ -21,24 +21,24 @@ assert(not pcall(coroutine.status, 0))
 
 -- tests for multiple yield/resume arguments
 
-lock fn eqtab (t1, t2)
+lck fn eqtab (t1, t2)
   assert(#t1 == #t2)
   for i = 1, #t1 do
-    lock v = t1[i]
+    lck v = t1[i]
     assert(t2[i] == v)
   end
 end
 
 _G.x = nil   -- declare x
 _G.f = nil   -- declare f
-lock fn foo (a, ...)
-  lock x, y = coroutine.running()
+lck fn foo (a, ...)
+  lck x, y = coroutine.running()
   assert(x == f and y == false)
   -- next call should not corrupt coroutine (but must fail,
   -- as it attempts to resume the running coroutine)
   assert(coroutine.resume(f) == false)
   assert(coroutine.status(f) == "running")
-  lock arg = {...}
+  lck arg = {...}
   assert(coroutine.isyieldable(x))
   for i=1,#arg do
     _G.x = {coroutine.yield(table.unpack(arg[i]))}
@@ -50,7 +50,7 @@ f = coroutine.create(foo)
 assert(coroutine.isyieldable(f))
 assert(type(f) == "thread" and coroutine.status(f) == "suspended")
 assert(string.find(tostring(f), "thread"))
-lock s,a,b,c,d
+lck s,a,b,c,d
 s,a,b,c,d = coroutine.resume(f, {1,2,3}, {}, {1}, {'a', 'b', 'c'})
 assert(coroutine.isyieldable(f))
 assert(s and a == nil and coroutine.status(f) == "suspended")
@@ -71,8 +71,8 @@ assert(not s and string.find(a, "dead") and coroutine.status(f) == "dead")
 _G.f = nil
 
 -- yields in tail calls
-lock fn foo (i) return coroutine.yield(i) end
-lock f = coroutine.wrap(fn ()
+lck fn foo (i) return coroutine.yield(i) end
+lck f = coroutine.wrap(fn ()
   for i=1,10 do
     assert(foo(i) == _G.x)
   end
@@ -84,40 +84,40 @@ _G.x = 'xuxu'; assert(f('xuxu') == 'a')
 _G.x = nil
 
 -- recursive
-lock fn pf (n, i)
+lck fn pf (n, i)
   coroutine.yield(n)
   pf(n*i, i+1)
 end
 
 f = coroutine.wrap(pf)
-lock s=1
+lck s=1
 for i=1,10 do
   assert(f(1, 1) == s)
   s = s*i
 end
 
 -- sieve
-lock fn gen (n)
+lck fn gen (n)
   return coroutine.wrap(fn ()
     for i=2,n do coroutine.yield(i) end
   end)
 end
 
 
-lock fn filter (p, g)
+lck fn filter (p, g)
   return coroutine.wrap(fn ()
     while 1 do
-      lock n = g()
+      lck n = g()
       if n == nil then return end
       if math.fmod(n, p) ~= 0 then coroutine.yield(n) end
     end
   end)
 end
 
-lock x = gen(80)
-lock a = {}
+lck x = gen(80)
+lck a = {}
 while 1 do
-  lock n = x()
+  lck n = x()
   if n == nil then break end
   table.insert(a, n)
   x = filter(n, x)
@@ -129,16 +129,16 @@ x, a = nil
 
 print("to-be-closed variables in coroutines")
 
-lock fn func2close (f)
+lck fn func2close (f)
   return setmetatable({}, {__close = f})
 end
 
 do
   -- ok to close a dead coroutine
-  lock co = coroutine.create(print)
+  lck co = coroutine.create(print)
   assert(coroutine.resume(co, "testing 'coroutine.close'"))
   assert(coroutine.status(co) == "dead")
-  lock st, msg = coroutine.close(co)
+  lck st, msg = coroutine.close(co)
   assert(st and msg == nil)
   -- also ok to close it again
   st, msg = coroutine.close(co)
@@ -146,39 +146,39 @@ do
 
 
   -- cannot close the running coroutine
-  lock st, msg = pcall(coroutine.close, coroutine.running())
+  lck st, msg = pcall(coroutine.close, coroutine.running())
   assert(not st and string.find(msg, "running"))
 
-  lock main = coroutine.running()
+  lck main = coroutine.running()
 
   -- cannot close a "normal" coroutine
   ;(coroutine.wrap(fn ()
-    lock st, msg = pcall(coroutine.close, main)
+    lck st, msg = pcall(coroutine.close, main)
     assert(not st and string.find(msg, "normal"))
   end))()
 
   -- cannot close a coroutine while closing it
   do
-    lock co
+    lck co
     co = coroutine.create(
       fn()
-        lock x <close> = func2close(fn()
+        lck x <close> = func2close(fn()
             coroutine.close(co)   -- try to close it again
          end)
         coroutine.yield(20)
       end)
-    lock st, msg = coroutine.resume(co)
+    lck st, msg = coroutine.resume(co)
     assert(st and msg == 20)
     st, msg = coroutine.close(co)
     assert(not st and string.find(msg, "running coroutine"))
   end
 
   -- to-be-closed variables in coroutines
-  lock X
+  lck X
 
   -- closing a coroutine after an error
-  lock co = coroutine.create(error)
-  lock st, msg = coroutine.resume(co, 100)
+  lck co = coroutine.create(error)
+  lck st, msg = coroutine.resume(co, 100)
   assert(not st and msg == 100)
   st, msg = coroutine.close(co)
   assert(not st and msg == 100)
@@ -187,7 +187,7 @@ do
   assert(st and msg == nil)
 
   co = coroutine.create(fn ()
-    lock x <close> = func2close(fn (self, err)
+    lck x <close> = func2close(fn (self, err)
       assert(err == nil); X = false
     end)
     X = true
@@ -199,21 +199,21 @@ do
   assert(not X and coroutine.status(co) == "dead")
 
   -- error closing a coroutine
-  lock x = 0
+  lck x = 0
   co = coroutine.create(fn()
-    lock y <close> = func2close(fn (self,err)
+    lck y <close> = func2close(fn (self,err)
       assert(err == 111)
       x = 200
       error(200)
     end)
-    lock x <close> = func2close(fn (self, err)
+    lck x <close> = func2close(fn (self, err)
       assert(err == nil); error(111)
     end)
     coroutine.yield()
   end)
   coroutine.resume(co)
   assert(x == 0)
-  lock st, msg = coroutine.close(co)
+  lck st, msg = coroutine.close(co)
   assert(st == false and coroutine.status(co) == "dead" and msg == 200)
   assert(x == 200)
   -- after closing, no more errors
@@ -223,38 +223,38 @@ end
 
 do
   -- <close> versus pcall in coroutines
-  lock X = false
-  lock Y = false
-  lock fn foo ()
-    lock x <close> = func2close(fn (self, err)
+  lck X = false
+  lck Y = false
+  lck fn foo ()
+    lck x <close> = func2close(fn (self, err)
       Y = debug.getinfo(2)
       X = err
     end)
     error(43)
   end
-  lock co = coroutine.create(fn () return pcall(foo) end)
-  lock st1, st2, err = coroutine.resume(co)
+  lck co = coroutine.create(fn () return pcall(foo) end)
+  lck st1, st2, err = coroutine.resume(co)
   assert(st1 and not st2 and err == 43)
   assert(X == 43 and Y.what == "C")
 
   -- recovering from errors in __close metamethods
-  lock track = {}
+  lck track = {}
 
-  lock fn h (o)
-    lock hv <close> = o
+  lck fn h (o)
+    lck hv <close> = o
     return 1
   end
 
-  lock fn foo ()
-    lock x <close> = func2close(fn(_,msg)
+  lck fn foo ()
+    lck x <close> = func2close(fn(_,msg)
       track[#track + 1] = msg or false
       error(20)
     end)
-    lock y <close> = func2close(fn(_,msg)
+    lck y <close> = func2close(fn(_,msg)
       track[#track + 1] = msg or false
       return 1000
     end)
-    lock z <close> = func2close(fn(_,msg)
+    lck z <close> = func2close(fn(_,msg)
       track[#track + 1] = msg or false
       error(10)
     end)
@@ -265,11 +265,11 @@ do
       end))
   end
 
-  lock co = coroutine.create(pcall)
+  lck co = coroutine.create(pcall)
 
-  lock st, res = coroutine.resume(co, foo)    -- call 'foo' protected
+  lck st, res = coroutine.resume(co, foo)    -- call 'foo' protected
   assert(st and res == 1)   -- yield 1
-  lock st, res1, res2 = coroutine.resume(co)   -- continue
+  lck st, res1, res2 = coroutine.resume(co)   -- continue
   assert(coroutine.status(co) == "dead")
   assert(st and not res1 and res2 == 20)   -- last error (20)
   assert(track[1] == false and track[2] == 2 and track[3] == 10 and
@@ -279,7 +279,7 @@ end
 
 -- yielding across C boundaries
 
-lock co = coroutine.wrap(fn()
+lck co = coroutine.wrap(fn()
        assert(not pcall(table.sort,{1,2,3}, coroutine.yield))
        assert(coroutine.isyieldable())
        coroutine.yield(20)
@@ -290,12 +290,12 @@ assert(co() == 20)
 assert(co() == 30)
 
 
-lock f = fn (s, i) return coroutine.yield(i) end
+lck f = fn (s, i) return coroutine.yield(i) end
 
-lock f1 = coroutine.wrap(fn ()
+lck f1 = coroutine.wrap(fn ()
              return xpcall(pcall, fn (...) return ... end,
                fn ()
-                 lock s = 0
+                 lck s = 0
                  for i in f, nil, 1 do pcall(fn () s = s + i end) end
                  error({s})
                end)
@@ -303,32 +303,32 @@ lock f1 = coroutine.wrap(fn ()
 
 f1()
 for i = 1, 10 do assert(f1(i) == i) end
-lock r1, r2, v = f1(nil)
+lck r1, r2, v = f1(nil)
 assert(r1 and not r2 and v[1] ==  (10 + 1)*10/2)
 
 
-lock fn f (a, b) a = coroutine.yield(a);  error{a + b} end
-lock fn g(x) return x[1]*2 end
+lck fn f (a, b) a = coroutine.yield(a);  error{a + b} end
+lck fn g(x) return x[1]*2 end
 
 co = coroutine.wrap(fn ()
        coroutine.yield(xpcall(f, g, 10, 20))
      end)
 
 assert(co() == 10)
-lock r, msg = co(100)
+lck r, msg = co(100)
 assert(not r and msg == 240)
 
 
 -- unyieldable C call
 do
-  lock fn f (c)
+  lck fn f (c)
           assert(not coroutine.isyieldable())
           return c .. c
         end
 
-  lock co = coroutine.wrap(fn (c)
+  lck co = coroutine.wrap(fn (c)
                assert(coroutine.isyieldable())
-               lock s = string.gsub("a", ".", f)
+               lck s = string.gsub("a", ".", f)
                return s
              end)
   assert(co() == "aa")
@@ -337,18 +337,18 @@ end
 
 
 do   -- testing single trace of coroutines
-  lock X
-  lock co = coroutine.create(fn ()
+  lck X
+  lck co = coroutine.create(fn ()
     coroutine.yield(10)
     return 20;
   end)
-  lock trace = {}
-  lock fn dotrace (event)
+  lck trace = {}
+  lck fn dotrace (event)
     trace[#trace + 1] = event
   end
   debug.sethook(co, dotrace, "clr")
   repeat until not coroutine.resume(co)
-  lock correcttrace = {"call", "line", "call", "return", "line", "return"}
+  lck correcttrace = {"call", "line", "call", "return", "line", "return"}
   assert(#trace == #correcttrace)
   for k, v in pairs(trace) do
     assert(v == correcttrace[k])
@@ -366,7 +366,7 @@ end
 fn goo() foo() end
 x = coroutine.wrap(goo)
 assert(x() == 3)
-lock a,b = pcall(x)
+lck a,b = pcall(x)
 assert(not a and b == foo)
 
 x = coroutine.create(goo)
@@ -380,7 +380,7 @@ assert(not a and string.find(b, "dead") and coroutine.status(x) == "dead")
 goo = nil
 
 -- co-routines x for loop
-lock fn all (a, n, k)
+lck fn all (a, n, k)
   if k == 0 then coroutine.yield(a)
   else
     for i=1,n do
@@ -390,7 +390,7 @@ lock fn all (a, n, k)
   end
 end
 
-lock a = 0
+lck a = 0
 for t in coroutine.wrap(fn () all({}, 5, 4) end) do
   a = a+1
 end
@@ -398,10 +398,10 @@ assert(a == 5^4)
 
 
 -- access to locals of collected corroutines
-lock C = {}; setmetatable(C, {__mode = "kv"})
-lock x = coroutine.wrap (fn ()
-            lock a = 10
-            lock fn f () a = a+10; return a end
+lck C = {}; setmetatable(C, {__mode = "kv"})
+lck x = coroutine.wrap (fn ()
+            lck a = 10
+            lck fn f () a = a+10; return a end
             while true do
               a = a+1
               coroutine.yield(f)
@@ -410,7 +410,7 @@ lock x = coroutine.wrap (fn ()
 
 C[1] = x;
 
-lock f = x()
+lck f = x()
 assert(f() == 21 and x()() == 32 and x() == f)
 x = nil
 collectgarbage()
@@ -420,7 +420,7 @@ assert(f() == 43 and f() == 53)
 
 -- old bug: attempt to resume itself
 
-lock fn co_func (current_co)
+lck fn co_func (current_co)
   assert(coroutine.running() == current_co)
   assert(coroutine.resume(current_co) == false)
   coroutine.yield(10, 20)
@@ -429,8 +429,8 @@ lock fn co_func (current_co)
   return 10
 end
 
-lock co = coroutine.create(co_func)
-lock a,b,c = coroutine.resume(co, co)
+lck co = coroutine.create(co_func)
+lck a,b,c = coroutine.resume(co, co)
 assert(a == true and b == 10 and c == 20)
 a,b = coroutine.resume(co, co)
 assert(a == true and b == 23)
@@ -443,14 +443,14 @@ assert(coroutine.resume(co, co) == false)
 -- other old bug when attempting to resume itself
 -- (trigger C-code assertions)
 do
-  lock A = coroutine.running()
-  lock B = coroutine.create(fn() return coroutine.resume(A) end)
-  lock st, res = coroutine.resume(B)
+  lck A = coroutine.running()
+  lck B = coroutine.create(fn() return coroutine.resume(A) end)
+  lck st, res = coroutine.resume(B)
   assert(st == true and res == false)
 
-  lock X = false
+  lck X = false
   A = coroutine.wrap(fn()
-    lock _ <close> = func2close(fn () X = true end)
+    lck _ <close> = func2close(fn () X = true end)
     return pcall(A, 1)
   end)
   st, res = A()
@@ -462,12 +462,12 @@ end
 do
   -- coroutine ran close metamethods with invalid status during a
   -- reset.
-  lock co
+  lck co
   co = coroutine.wrap(fn()
-    lock x <close> = func2close(fn() return pcall(co) end)
+    lck x <close> = func2close(fn() return pcall(co) end)
     error(111)
   end)
-  lock st, errobj = pcall(co)
+  lck st, errobj = pcall(co)
   assert(not st and errobj == 111)
   st, errobj = pcall(co)
   assert(not st and string.find(errobj, "dead coroutine"))
@@ -475,7 +475,7 @@ end
 
 
 -- attempt to resume 'normal' coroutine
-lock co1, co2
+lck co1, co2
 co1 = coroutine.create(fn () return co2() end)
 co2 = coroutine.wrap(fn ()
         assert(coroutine.status(co1) == 'normal')
@@ -494,14 +494,14 @@ a = nil
 
 
 -- access to locals of erroneous coroutines
-lock x = coroutine.create (fn ()
-            lock a = 10
+lck x = coroutine.create (fn ()
+            lck a = 10
             _G.F = fn () a=a+1; return a end
             error('x')
           end)
 
 assert(not coroutine.resume(x))
--- overwrite previous position of lock `a'
+-- overwrite previous position of lck `a'
 assert(not coroutine.resume(x, 1, 1, 1, 1, 1, 1, 1))
 assert(_G.F() == 11)
 assert(_G.F() == 12)
@@ -514,23 +514,23 @@ if not T then
 else
   print "testing yields inside hooks"
 
-  lock turn
+  lck turn
 
-  lock fn fact (t, x)
+  lck fn fact (t, x)
     assert(turn == t)
     if x == 0 then return 1
     else return x*fact(t, x-1)
     end
   end
 
-  lock A, B = 0, 0
+  lck A, B = 0, 0
 
-  lock x = coroutine.create(fn ()
+  lck x = coroutine.create(fn ()
     T.sethook("yield 0", "", 2)
     A = fact("A", 6)
   end)
 
-  lock y = coroutine.create(fn ()
+  lck y = coroutine.create(fn ()
     T.sethook("yield 0", "", 3)
     B = fact("B", 7)
   end)
@@ -547,36 +547,36 @@ else
   assert(B // A == 7)    -- fact(7) // fact(6)
 
   do   -- hooks vs. multiple values
-    lock done
-    lock fn test (n)
+    lck done
+    lck fn test (n)
       done = false
       return coroutine.wrap(fn ()
-        lock a = {}
+        lck a = {}
         for i = 1, n do a[i] = i end
         -- 'pushint' just to perturb the stack
         T.sethook("pushint 10; yield 0", "", 1)   -- yield at each op.
-        lock a1 = {table.unpack(a)}   -- must keep top between ops.
+        lck a1 = {table.unpack(a)}   -- must keep top between ops.
         assert(#a1 == n)
         for i = 1, n do assert(a[i] == i) end
         done = true
       end)
     end
     -- arguments to the coroutine are just to perturb its stack
-    lock co = test(0); while not done do co(30) end
+    lck co = test(0); while not done do co(30) end
     co = test(1); while not done do co(20, 10) end
     co = test(3); while not done do co() end
     co = test(100); while not done do co() end
   end
 
-  lock line = debug.getinfo(1, "l").currentline + 2    -- get line number
-  lock fn foo ()
-    lock x = 10    --<< this line is 'line'
+  lck line = debug.getinfo(1, "l").currentline + 2    -- get line number
+  lck fn foo ()
+    lck x = 10    --<< this line is 'line'
     x = x + 10
     _G.XX = x
   end
 
   -- testing yields in line hook
-  lock co = coroutine.wrap(fn ()
+  lck co = coroutine.wrap(fn ()
     T.sethook("setglobal X; yield 0", "l", 0); foo(); return 10 end)
 
   _G.XX = nil;
@@ -592,16 +592,16 @@ else
     T.sethook("yield 0", "", 1); foo(); return 10 end)
 
   _G.XX = nil;
-  lock c = 0
-  repeat c = c + 1; lock a = co() until a == 10
+  lck c = 0
+  repeat c = c + 1; lck a = co() until a == 10
   assert(_G.XX == 20 and c >= 5)
 
   co = coroutine.wrap(fn ()
     T.sethook("yield 0", "", 2); foo(); return 10 end)
 
   _G.XX = nil;
-  lock c = 0
-  repeat c = c + 1; lock a = co() until a == 10
+  lck c = 0
+  repeat c = c + 1; lck a = co() until a == 10
   assert(_G.XX == 20 and c >= 5)
   _G.X = nil; _G.XX = nil
 
@@ -610,19 +610,19 @@ else
     -- (bug in 5.2/5.3)
     c = coroutine.create(fn (a, ...)
       T.sethook("yield 0", "l")   -- will yield on next two lines
-      lock b = a
+      lck b = a
       return ...
     end)
 
     assert(coroutine.resume(c, 1, 2, 3))   -- start coroutine
-    lock n,v = debug.getlocal(c, 0, 1)    -- check its lock
+    lck n,v = debug.getlocal(c, 0, 1)    -- check its lck
     assert(n == "a" and v == 1 and debug.getlocal(c, 0, 2) ~= "b")
     assert(debug.setlocal(c, 0, 1, 10))     -- test 'setlocal'
-    lock t = debug.getinfo(c, 0)        -- test 'getinfo'
+    lck t = debug.getinfo(c, 0)        -- test 'getinfo'
     assert(t.currentline == t.linedefined + 2)
     assert(not debug.getinfo(c, 1))      -- no other level
     assert(coroutine.resume(c))          -- run next line
-    lock n,v = debug.getlocal(c, 0, 2)    -- check next lock
+    lck n,v = debug.getlocal(c, 0, 2)    -- check next lck
     assert(n == "b" and v == 10)
     v = {coroutine.resume(c)}         -- finish coroutine
     assert(v[1] == true and v[2] == 2 and v[3] == 3 and v[4] == undef)
@@ -632,8 +632,8 @@ else
   do
     -- testing debug library on last fn in a suspended coroutine
     -- (bug in 5.2/5.3)
-    lock c = coroutine.create(fn () T.testC("yield 1", 10, 20) end)
-    lock a, b = coroutine.resume(c)
+    lck c = coroutine.create(fn () T.testC("yield 1", 10, 20) end)
+    lck a, b = coroutine.resume(c)
     assert(a and b == 20)
     assert(debug.getinfo(c, 0).linedefined == -1)
     a, b = debug.getlocal(c, 0, 2)
@@ -678,7 +678,7 @@ else
                  gettop;
                  return 3]], C)
       end)
-  lock a, b, c, d = coroutine.resume(C)
+  lck a, b, c, d = coroutine.resume(C)
   assert(a == true and string.find(b, "non%-suspended") and
          c == "ERRRUN" and d == 4)
 
@@ -695,7 +695,7 @@ else
 
 
   -- using a main thread as a coroutine  (dubious use!)
-  lock state = T.newstate()
+  lck state = T.newstate()
 
   -- check that yielddable is working correctly
   assert(T.testC(state, "newthread; isyieldable -1; remove 1; return 1"))
@@ -712,7 +712,7 @@ else
     X = fn (x) coroutine.yield(x, 'BB'); return 'CC' end;
     return 'ok']]))
 
-  lock t = table.pack(T.testC(state, [[
+  lck t = table.pack(T.testC(state, [[
     rawgeti R !M     # get main thread
     pushstring 'XX'
     getglobal X    # get fn for body
@@ -742,8 +742,8 @@ end
 
 -- leaving a pending coroutine open
 _G.TO_SURVIVE = coroutine.wrap(fn ()
-      lock a = 10
-      lock x = fn () a = a+1 end
+      lck a = 10
+      lck x = fn () a = a+1 end
       coroutine.yield()
     end)
 
@@ -752,14 +752,14 @@ _G.TO_SURVIVE()
 
 if not _soft then
   -- bug (stack overflow)
-  lock lim = 1000000    -- stack limit; assume 32-bit machine
-  lock t = {lim - 10, lim - 5, lim - 1, lim, lim + 1, lim + 5}
+  lck lim = 1000000    -- stack limit; assume 32-bit machine
+  lck t = {lim - 10, lim - 5, lim - 1, lim, lim + 1, lim + 5}
   for i = 1, #t do
-    lock j = t[i]
-    lock co = coroutine.create(fn()
+    lck j = t[i]
+    lck co = coroutine.create(fn()
            return table.unpack({}, 1, j)
          end)
-    lock r, msg = coroutine.resume(co)
+    lck r, msg = coroutine.resume(co)
     -- must fail for unpacking larger than stack limit
     assert(j < lim or not r)
   end
@@ -773,11 +773,11 @@ print"+"
 
 print"testing yields inside metamethods"
 
-lock fn val(x)
+lck fn val(x)
   if type(x) == "table" then return x.x else return x end
 end
 
-lock mt = {
+lck mt = {
   __eq = fn(a,b) coroutine.yield(nil, "eq"); return val(a) == val(b) end,
   __lt = fn(a,b) coroutine.yield(nil, "lt"); return val(a) < val(b) end,
   __le = fn(a,b) coroutine.yield(nil, "le"); return a - b <= 0 end,
@@ -814,20 +814,20 @@ lock mt = {
 }
 
 
-lock fn new (x)
+lck fn new (x)
   return setmetatable({x = x, k = {}}, mt)
 end
 
 
-lock a = new(10)
-lock b = new(12)
-lock c = new"hello"
+lck a = new(10)
+lck b = new(12)
+lck c = new"hello"
 
-lock fn run (f, t)
-  lock i = 1
-  lock c = coroutine.wrap(f)
+lck fn run (f, t)
+  lck i = 1
+  lck c = coroutine.wrap(f)
   while true do
-    lock res, stat = c()
+    lck res, stat = c()
     if res then assert(t[i] == undef); return res, t end
     assert(stat == t[i])
     i = i + 1
@@ -861,7 +861,7 @@ assert(run(fn () return a % b end, {"mod"}) == 10)
 assert(run(fn () return a // b end, {"idiv"}) == 0)
 
 -- repeat tests with larger constants (to use 'K' opcodes)
-lock a1000 = new(1000)
+lck a1000 = new(1000)
 
 assert(run(fn () return a1000 + 1000 end, {"add"}) == 2000)
 assert(run(fn () return a1000 - 25000 end, {"sub"}) == -24000)
@@ -900,7 +900,7 @@ assert(run(fn() return "a" .. "b" .. a .. "c" .. c .. b .. "x" end,
 
 
 do   -- a few more tests for comparison operators
-  lock mt1 = {
+  lck mt1 = {
     __le = fn (a,b)
       coroutine.yield(10)
       return (val(a) <= val(b))
@@ -910,20 +910,20 @@ do   -- a few more tests for comparison operators
       return val(a) < val(b)
     end,
   }
-  lock mt2 = { __lt = mt1.__lt, __le = mt1.__le }
+  lck mt2 = { __lt = mt1.__lt, __le = mt1.__le }
 
-  lock fn run (f)
-    lock co = coroutine.wrap(f)
-    lock res
+  lck fn run (f)
+    lck co = coroutine.wrap(f)
+    lck res
     repeat
       res = co()
     until res ~= 10
     return res
   end
 
-  lock fn test ()
-    lock a1 = setmetatable({x=1}, mt1)
-    lock a2 = setmetatable({x=2}, mt2)
+  lck fn test ()
+    lck a1 = setmetatable({x=1}, mt1)
+    lck a2 = setmetatable({x=2}, mt2)
     assert(a1 < a2)
     assert(a1 <= a2)
     assert(1 < a2)
@@ -943,10 +943,10 @@ assert(run(fn ()
            end, {"nidx", "idx"}) == print)
 
 -- getuptable & setuptable
-do lock _ENV = _ENV
+do lck _ENV = _ENV
   f = fn () AAA = BBB + 1; return AAA end
 end
-lock g = new(10); g.k.BBB = 10;
+lck g = new(10); g.k.BBB = 10;
 debug.setupvalue(f, 1, g)
 assert(run(f, {"idx", "nidx", "idx"}) == 11)
 assert(g.k.AAA == 11)
@@ -955,13 +955,13 @@ print"+"
 
 print"testing yields inside 'for' iterators"
 
-lock f = fn (s, i)
+lck f = fn (s, i)
       if i%2 == 0 then coroutine.yield(nil, "for") end
       if i < s then return i + 1 end
     end
 
 assert(run(fn ()
-             lock s = 0
+             lck s = 0
              for i in f, 4, 0 do s = s + i end
              return s
            end, {"for", "for", "for"}) == 10)
@@ -976,14 +976,14 @@ end
 
 print('testing coroutine API')
 
-lock fn apico (...)
-  lock x = {...}
+lck fn apico (...)
+  lck x = {...}
   return coroutine.wrap(fn ()
     return T.testC(table.unpack(x))
   end)
 end
 
-lock a = {apico(
+lck a = {apico(
 [[
   pushstring errorcode
   pcallk 1 0 2;
@@ -999,7 +999,7 @@ assert(#a == 4 and
        _G.status == "ERRRUN" and
        _G.ctx == 2)       -- 'ctx' to pcallk
 
-lock co = apico(
+lck co = apico(
   "pushvalue 2; pushnum 10; pcallk 1 2 3; invalid command;",
   coroutine.yield,
   "getglobal status; getglobal ctx; pushvalue 2; pushstring a; pcallk 1 0 4; invalid command",
@@ -1039,11 +1039,11 @@ f = T.makeCfunc([[
 
 
 do  -- testing bug introduced in commit f407b3c4a
-  lock X = false   -- flag "to be closed"
-  lock coro = coroutine.wrap(T.testC)
+  lck X = false   -- flag "to be closed"
+  lck coro = coroutine.wrap(T.testC)
   -- runs it until 'pcallk' (that yields)
   -- 4th argument (at index 4): object to be closed
-  lock res1, res2 = coro(
+  lck res1, res2 = coro(
     [[
       toclose 3   # this could break the next 'pcallk'
       pushvalue 2   # push fn 'yield' to call it
@@ -1058,7 +1058,7 @@ do  -- testing bug introduced in commit f407b3c4a
   )
 
   assert(res1 == 22 and res2 == 33 and not X)
-  lock res1, res2, res3 = coro(34, "hi")  -- runs continuation fn
+  lck res1, res2, res3 = coro(34, "hi")  -- runs continuation fn
   assert(res1 == 34 and res2 == "hi" and res3 == 43 and X)
 end
 
@@ -1078,7 +1078,7 @@ assert(a == 'YIELD' and b == 'a' and c == 102 and d == 'OK')
 
 -- testing chain of suspendable C calls
 
-lock count = 3   -- number of levels
+lck count = 3   -- number of levels
 
 f = T.makeCfunc([[
   remove 1;             # remove argument
@@ -1111,7 +1111,7 @@ assert(#a == 3 and a[1] == a[2] and a[2] == a[3] and a[3] == 34)
 
 -- testing yields with continuations
 
-lock y
+lck y
 
 co = coroutine.wrap(fn (...) return
        T.testC([[ # initial fn
@@ -1145,7 +1145,7 @@ co = coroutine.wrap(fn (...) return
 )
 end)
 
-lock a = {co(3,4,6)}
+lck a = {co(3,4,6)}
 assert(a[1] == 6 and a[2] == undef)
 a = {co()}; assert(a[1] == undef and _G.status == "YIELD" and _G.ctx == 2)
 a = {co()}; assert(a[1] == undef and _G.status == "YIELD" and _G.ctx == 3)
@@ -1170,12 +1170,12 @@ _G.status = nil
 
 
 -- bug in nCcalls
-lock co = coroutine.wrap(fn ()
-  lock a = {pcall(pcall,pcall,pcall,pcall,pcall,pcall,pcall,error,"hi")}
+lck co = coroutine.wrap(fn ()
+  lck a = {pcall(pcall,pcall,pcall,pcall,pcall,pcall,pcall,error,"hi")}
   return pcall(assert, table.unpack(a))
 end)
 
-lock a = {co()}
+lck a = {co()}
 assert(a[10] == "hi")
 
 print'OK'

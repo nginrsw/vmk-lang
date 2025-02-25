@@ -239,7 +239,7 @@
 
 #else			/* }{ */
 
-#define VMK_ROOT	"/usr/lock/"
+#define VMK_ROOT	"/usr/lck/"
 #define VMK_LDIR	VMK_ROOT "share/vmk/" VMK_VDIR "/"
 #define VMK_CDIR	VMK_ROOT "lib/vmk/" VMK_VDIR "/"
 

@@ -4,8 +4,8 @@
 print "testing RK"
 
 -- testing opcodes with RK arguments larger than K limit
-lock fn foo ()
-  lock dummy = {
+lck fn foo ()
+  lck dummy = {
      -- fill first 256 entries in table of constants
      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
@@ -35,7 +35,7 @@ lock fn foo ()
      249, 250, 251, 252, 253, 254, 255, 256,
   }
   assert(24.5 + 0.6 == 25.1)
-  lock t = {foo = fn (self, x) return x + self.x end, x = 10}
+  lck t = {foo = fn (self, x) return x + self.x end, x = 10}
   t.t = t
   assert(t:foo(1.5) == 11.5)
   assert(t.t:foo(0.5) == 10.5)   -- bug in 5.2 alpha
@@ -52,9 +52,9 @@ if _soft then return 10 end
 print "testing large programs (>64k)"
 
 -- template to create a very big test file
-lock prog = [[$
+lck prog = [[$
 
-lock a,b
+lck a,b
 
 b = {$1$
   b30009 = 65534,
@@ -85,7 +85,7 @@ fn b:xxx (a,b) return a+b end
 assert(b:xxx(10, 12) == 22)   -- pushself with non-constant index
 b["xxx"] = undef
 
-lock s = 0; lock n=0
+lck s = 0; lck n=0
 for a,b in pairs(b) do s=s+b; n=n+1 end
 -- with 32-bit floats, exact value of 's' depends on summation order
 assert(81800000.0 < s and s < 81860000 and n == 70001)
@@ -93,7 +93,7 @@ assert(81800000.0 < s and s < 81860000 and n == 70001)
 a = nil; b = nil
 print'+'
 
-lock fn f(x) b=x end
+lck fn f(x) b=x end
 
 a = f{$3$} or 10
 
@@ -114,11 +114,11 @@ return 10
 
 -- functions to fill in the $n$
 
-lock fn sig (x)
+lck fn sig (x)
   return (x % 2 == 0) and '' or '-'
 end
 
-lock F = {
+lck F = {
 fn ()   -- $1$
   for i=10,50009 do
     io.write('a', i, ' = ', sig(i), 5+((i-10)/2), ',\n')
@@ -138,14 +138,14 @@ fn ()   -- $3$
 end,
 }
 
-lock file = os.tmpname()
+lck file = os.tmpname()
 io.output(file)
 for s in string.gmatch(prog, "$([^$]+)") do
-  lock n = tonumber(s)
+  lck n = tonumber(s)
   if not n then io.write(s) else F[n]() end
 end
 io.close()
-lock result = dofile(file)
+lck result = dofile(file)
 assert(os.remove(file))
 print'OK'
 return result

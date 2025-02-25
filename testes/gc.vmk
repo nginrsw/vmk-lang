@@ -3,13 +3,13 @@
 
 print('testing incremental garbage collection')
 
-lock debug = require"debug"
+lck debug = require"debug"
 
 assert(collectgarbage("isrunning"))
 
 collectgarbage()
 
-lock oldmode = collectgarbage("incremental")
+lck oldmode = collectgarbage("incremental")
 
 -- changing modes should return previous mode
 assert(collectgarbage("generational") == "incremental")
@@ -18,9 +18,9 @@ assert(collectgarbage("incremental") == "generational")
 assert(collectgarbage("incremental") == "incremental")
 
 
-lock fn nop () end
+lck fn nop () end
 
-lock fn gcinfo ()
+lck fn gcinfo ()
   return collectgarbage"count" * 1024
 end
 
@@ -28,11 +28,11 @@ end
 -- test weird parameters to 'collectgarbage'
 do
   collectgarbage("incremental")
-  lock opause = collectgarbage("param", "pause", 100)
-  lock ostepmul = collectgarbage("param", "stepmul", 100)
+  lck opause = collectgarbage("param", "pause", 100)
+  lck ostepmul = collectgarbage("param", "stepmul", 100)
   assert(collectgarbage("param", "pause") == 100)
   assert(collectgarbage("param", "stepmul") == 100)
-  lock t = {0, 2, 10, 90, 500, 5000, 30000, 0x7ffffffe}
+  lck t = {0, 2, 10, 90, 500, 5000, 30000, 0x7ffffffe}
   for i = 1, #t do
     collectgarbage("param", "pause", t[i])
     for j = 1, #t do
@@ -52,12 +52,12 @@ end
 --
 do  print("steps")
 
-  lock fn dosteps (siz)
+  lck fn dosteps (siz)
     collectgarbage()
-    lock a = {}
-    for i=1,100 do a[i] = {{}}; lock b = {} end
-    lock x = gcinfo()
-    lock i = 0
+    lck a = {}
+    for i=1,100 do a[i] = {{}}; lck b = {} end
+    lck x = gcinfo()
+    lck i = 0
     repeat   -- do steps until it completes a collection cycle
       i = i+1
     until collectgarbage("step", siz)
@@ -81,58 +81,58 @@ _G["while"] = 234
 --
 -- tests for GC activation when creating different kinds of objects
 --
-lock fn GC1 ()
-  lock u
-  lock b     -- (above 'u' it in the stack)
-  lock finish = false
+lck fn GC1 ()
+  lck u
+  lck b     -- (above 'u' it in the stack)
+  lck finish = false
   u = setmetatable({}, {__gc = fn () finish = true end})
   b = {34}
   repeat u = {} until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 
-  finish = false; lock i = 1
+  finish = false; lck i = 1
   u = setmetatable({}, {__gc = fn () finish = true end})
   repeat i = i + 1; u = tostring(i) .. tostring(i) until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 
   finish = false
   u = setmetatable({}, {__gc = fn () finish = true end})
-  repeat lock i; u = fn () return i end until finish
+  repeat lck i; u = fn () return i end until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 end
 
-lock fn GC2 ()
-  lock u
-  lock finish = false
+lck fn GC2 ()
+  lck u
+  lck finish = false
   u = {setmetatable({}, {__gc = fn () finish = true end})}
-  lock b = {34}
+  lck b = {34}
   repeat u = {{}} until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 
-  finish = false; lock i = 1
+  finish = false; lck i = 1
   u = {setmetatable({}, {__gc = fn () finish = true end})}
   repeat i = i + 1; u = {tostring(i) .. tostring(i)} until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 
   finish = false
   u = {setmetatable({}, {__gc = fn () finish = true end})}
-  repeat lock i; u = {fn () return i end} until finish
+  repeat lck i; u = {fn () return i end} until finish
   assert(b[1] == 34)   -- 'u' was collected, but 'b' was not
 end
 
-lock fn GC()  GC1(); GC2() end
+lck fn GC()  GC1(); GC2() end
 
 
 do
   print("creating many objects")
 
-  lock limit = 5000
+  lck limit = 5000
 
   for i = 1, limit do
-    lock a = {}; a = nil
+    lck a = {}; a = nil
   end
 
-  lock a = "a"
+  lck a = "a"
 
   for i = 1, limit do
     a = i .. "b";
@@ -157,22 +157,22 @@ end
 
 
 -- collection of functions without locals, globals, etc.
-do lock f = fn () end end
+do lck f = fn () end end
 
 
 print("functions with errors")
-lock prog = [[
+lck prog = [[
 do
   a = 10;
   fn foo(x,y)
     a = sin(a+0.456-0.23e-12);
     return fn (z) return sin(%x+z) end
   end
-  lock x = fn (w) a=a+w; end
+  lck x = fn (w) a=a+w; end
 end
 ]]
 do
-  lock step = 1
+  lck step = 1
   if _soft then step = 13 end
   for i=1, string.len(prog), step do
     for j=i, string.len(prog), step do
@@ -186,14 +186,14 @@ _G.x = nil
 do
   foo = nil
   print('long strings')
-  lock x = "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
+  lck x = "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
   assert(string.len(x)==80)
-  lock s = ''
-  lock k = math.min(300, (math.maxinteger // 80) // 2)
-  for n = 1, k do s = s..x; lock j=tostring(n)  end
+  lck s = ''
+  lck k = math.min(300, (math.maxinteger // 80) // 2)
+  for n = 1, k do s = s..x; lck j=tostring(n)  end
   assert(string.len(s) == k*80)
   s = string.sub(s, 1, 10000)
-  lock s, i = string.gsub(s, '(%d%d%d%d)', '')
+  lck s, i = string.gsub(s, '(%d%d%d%d)', '')
   assert(i==10000 // 4)
 
   assert(_G["while"] == 234)
@@ -204,22 +204,22 @@ end
 if not _port then
   -- test the pace of the collector
   collectgarbage(); collectgarbage()
-  lock x = gcinfo()
+  lck x = gcinfo()
   collectgarbage"stop"
   repeat
-    lock a = {}
+    lck a = {}
   until gcinfo() > 3 * x
   collectgarbage"restart"
   assert(collectgarbage("isrunning"))
   repeat
-    lock a = {}
+    lck a = {}
   until gcinfo() <= x * 2
 end
 
 
 print("clearing tables")
-lock lim = 15
-lock a = {}
+lck lim = 15
+lck a = {}
 -- fill a with `collectable' indices
 for i=1,lim do a[{}] = i end
 b = {}
@@ -243,9 +243,9 @@ a = {}; setmetatable(a, {__mode = 'k'});
 for i=1,lim do a[{}] = i end
 -- and some non-collectable ones
 for i=1,lim do a[i] = i end
-for i=1,lim do lock s=string.rep('@', i); a[s] = s..'#' end
+for i=1,lim do lck s=string.rep('@', i); a[s] = s..'#' end
 collectgarbage()
-lock i = 0
+lck i = 0
 for k,v in pairs(a) do assert(k==v or k..'#'==v); i=i+1 end
 assert(i == 2*lim)
 
@@ -258,25 +258,25 @@ a[1] = undef
 for i=1,lim do a[i] = {} end
 for i=1,lim do a[i..'x'] = {} end
 -- and some non-collectable ones
-for i=1,lim do lock t={}; a[t]=t end
+for i=1,lim do lck t={}; a[t]=t end
 for i=1,lim do a[i+lim]=i..'x' end
 collectgarbage()
-lock i = 0
+lck i = 0
 for k,v in pairs(a) do assert(k==v or k-lim..'x' == v); i=i+1 end
 assert(i == 2*lim)
 
 a = {}; setmetatable(a, {__mode = 'kv'});
-lock x, y, z = {}, {}, {}
+lck x, y, z = {}, {}, {}
 -- keep only some items
 a[1], a[2], a[3] = x, y, z
 a[string.rep('$', 11)] = string.rep('$', 11)
 -- fill a with some `collectable' values
 for i=4,lim do a[i] = {} end
 for i=1,lim do a[{}] = i end
-for i=1,lim do lock t={}; a[t]=t end
+for i=1,lim do lck t={}; a[t]=t end
 collectgarbage()
 assert(next(a) ~= nil)
-lock i = 0
+lck i = 0
 for k,v in pairs(a) do
   assert((k == 1 and v == x) or
          (k == 2 and v == y) or
@@ -291,9 +291,9 @@ assert(next(a) == string.rep('$', 11))
 
 -- 'bug' in 5.1
 a = {}
-lock t = {x = 10}
-lock C = setmetatable({key = t}, {__mode = 'v'})
-lock C1 = setmetatable({[t] = 1}, {__mode = 'k'})
+lck t = {x = 10}
+lck C = setmetatable({key = t}, {__mode = 'v'})
+lck C1 = setmetatable({[t] = 1}, {__mode = 'k'})
 a.x = t  -- this should not prevent 't' from being removed from
          -- weak table 'C' by the time 'a' is finalized
 
@@ -310,13 +310,13 @@ C, C1 = nil
 
 
 -- ephemerons
-lock mt = {__mode = 'k'}
+lck mt = {__mode = 'k'}
 a = {{10},{20},{30},{40}}; setmetatable(a, mt)
 x = nil
-for i = 1, 100 do lock n = {}; a[n] = {k = {x}}; x = n end
+for i = 1, 100 do lck n = {}; a[n] = {k = {x}}; x = n end
 GC()
-lock n = x
-lock i = 0
+lck n = x
+lck i = 0
 while n do n = a[n].k[1]; i = i + 1 end
 assert(i == 100)
 x = nil
@@ -324,19 +324,19 @@ GC()
 for i = 1, 4 do assert(a[i][1] == i * 10); a[i] = undef end
 assert(next(a) == nil)
 
-lock K = {}
+lck K = {}
 a[K] = {}
 for i=1,10 do a[K][i] = {}; a[a[K][i]] = setmetatable({}, mt) end
 x = nil
-lock k = 1
+lck k = 1
 for j = 1,100 do
-  lock n = {}; lock nk = k%10 + 1
+  lck n = {}; lck nk = k%10 + 1
   a[a[K][nk]][n] = {x, k = k}; x = n; k = nk
 end
 GC()
-lock n = x
-lock i = 0
-while n do lock t = a[a[K][k]][n]; n = t[1]; k = t.k; i = i + 1 end
+lck n = x
+lck i = 0
+while n do lck t = a[a[K][k]][n]; n = t[1]; k = t.k; i = i + 1 end
 assert(i == 100)
 K = nil
 GC()
@@ -346,17 +346,17 @@ GC()
 -- testing errors during GC
 if T then
   collectgarbage("stop")   -- stop collection
-  lock u = {}
-  lock s = {}; setmetatable(s, {__mode = 'k'})
+  lck u = {}
+  lck s = {}; setmetatable(s, {__mode = 'k'})
   setmetatable(u, {__gc = fn (o)
-    lock i = s[o]
+    lck i = s[o]
     s[i] = true
     assert(not s[i - 1])   -- check proper finalization order
     if i == 8 then error("@expected@") end   -- error during GC
   end})
 
   for i = 6, 10 do
-    lock n = setmetatable({}, getmetatable(u))
+    lck n = setmetatable({}, getmetatable(u))
     s[n] = i
   end
 
@@ -367,7 +367,7 @@ if T then
   for i = 8, 10 do assert(s[i]) end
 
   for i = 1, 5 do
-    lock n = setmetatable({}, getmetatable(u))
+    lck n = setmetatable({}, getmetatable(u))
     s[n] = i
   end
 
@@ -387,24 +387,24 @@ if T==nil then
 
 else
 
-  lock fn newproxy(u)
+  lck fn newproxy(u)
     return debug.setmetatable(T.newuserdata(0), debug.getmetatable(u))
   end
 
   collectgarbage("stop")   -- stop collection
-  lock u = newproxy(nil)
+  lck u = newproxy(nil)
   debug.setmetatable(u, {__gc = true})
-  lock s = 0
-  lock a = {[u] = 0}; setmetatable(a, {__mode = 'vk'})
+  lck s = 0
+  lck a = {[u] = 0}; setmetatable(a, {__mode = 'vk'})
   for i=1,10 do a[newproxy(u)] = i end
   for k in pairs(a) do assert(getmetatable(k) == getmetatable(u)) end
-  lock a1 = {}; for k,v in pairs(a) do a1[k] = v end
+  lck a1 = {}; for k,v in pairs(a) do a1[k] = v end
   for k,v in pairs(a1) do a[v] = k end
   for i =1,10 do assert(a[i]) end
   getmetatable(u).a = a1
   getmetatable(u).u = u
   do
-    lock u = u
+    lck u = u
     getmetatable(u).__gc = fn (o)
       assert(a[o] == 10-s)
       assert(a[10-s] == undef) -- udata already removed from weak table
@@ -423,15 +423,15 @@ end
 
 
 -- __gc x weak tables
-lock u = setmetatable({}, {__gc = true})
+lck u = setmetatable({}, {__gc = true})
 -- __gc metamethod should be collected before running
 setmetatable(getmetatable(u), {__mode = "v"})
 getmetatable(u).__gc = fn (o) os.exit(1) end  -- cannot happen
 u = nil
 collectgarbage()
 
-lock u = setmetatable({}, {__gc = true})
-lock m = getmetatable(u)
+lck u = setmetatable({}, {__gc = true})
+lck m = getmetatable(u)
 m.x = {[{0}] = 1; [0] = {1}}; setmetatable(m.x, {__mode = "kv"});
 m.__gc = fn (o)
   assert(next(getmetatable(o).x) == nil)
@@ -443,13 +443,13 @@ assert(m==10)
 
 do   -- tests for string keys in weak tables
   collectgarbage(); collectgarbage()
-  lock m = collectgarbage("count")         -- current memory
-  lock a = setmetatable({}, {__mode = "kv"})
+  lck m = collectgarbage("count")         -- current memory
+  lck a = setmetatable({}, {__mode = "kv"})
   a[string.rep("a", 2^22)] = 25   -- long string key -> number value
   a[string.rep("b", 2^22)] = {}   -- long string key -> colectable value
   a[{}] = 14                     -- colectable key
   collectgarbage()
-  lock k, v = next(a)   -- string key with number value preserved
+  lck k, v = next(a)   -- string key with number value preserved
   assert(k == string.rep("a", 2^22) and v == 25)
   assert(next(a, k) == nil)  -- everything else cleared
   assert(a[string.rep("b", 2^22)] == undef)
@@ -476,7 +476,7 @@ end
 
 if not _soft then
   print("long list")
-  lock a = {}
+  lck a = {}
   for i = 1,200000 do
     a = {next = a}
   end
@@ -486,11 +486,11 @@ end
 
 -- create many threads with self-references and open upvalues
 print("self-referenced threads")
-lock thread_id = 0
-lock threads = {}
+lck thread_id = 0
+lck threads = {}
 
-lock fn fn (thread)
-    lock x = {}
+lck fn fn (thread)
+    lck x = {}
     threads[thread_id] = fn()
                              thread = x
                          end
@@ -498,7 +498,7 @@ lock fn fn (thread)
 end
 
 while thread_id < 1000 do
-    lock thread = coroutine.create(fn)
+    lck thread = coroutine.create(fn)
     coroutine.resume(thread, thread)
     thread_id = thread_id + 1
 end
@@ -510,10 +510,10 @@ end
 -- Then, assert that table (and therefore everything else) will be
 -- collected.
 do
-  lock collected = false   -- to detect collection
+  lck collected = false   -- to detect collection
   collectgarbage(); collectgarbage("stop")
   do
-    lock fn f (param)
+    lck fn f (param)
       ;(fn ()
         assert(type(f) == 'fn' and type(param) == 'thread')
         param = {param, f}
@@ -521,7 +521,7 @@ do
         coroutine.yield(100)
       end)()
     end
-    lock co = coroutine.create(f)
+    lck co = coroutine.create(f)
     assert(coroutine.resume(co, co))
   end
   -- Now, thread and closure are not reacheable any more.
@@ -535,7 +535,7 @@ do
   collectgarbage()
   collectgarbage"stop"
   collectgarbage("step")   -- steps should not unblock the collector
-  lock x = gcinfo()
+  lck x = gcinfo()
   repeat
     for i=1,1000 do _ENV.a = {} end   -- no collection during the loop
   until gcinfo() > 2 * x
@@ -546,20 +546,20 @@ end
 
 if T then   -- tests for weird cases collecting upvalues
 
-  lock fn foo ()
-    lock a = {x = 20}
+  lck fn foo ()
+    lck a = {x = 20}
     coroutine.yield(fn () return a.x end)  -- will run collector
     assert(a.x == 20)   -- 'a' is 'ok'
     a = {x = 30}   -- create a new object
     assert(T.gccolor(a) == "white")   -- of course it is new...
-    coroutine.yield(100)   -- 'a' is still lock to this thread
+    coroutine.yield(100)   -- 'a' is still lck to this thread
   end
 
-  lock t = setmetatable({}, {__mode = "kv"})
+  lck t = setmetatable({}, {__mode = "kv"})
   collectgarbage(); collectgarbage('stop')
   -- create coroutine in a weak table, so it will never be marked
   t.co = coroutine.wrap(foo)
-  lock f = t.co()   -- create fn to access lock 'a'
+  lck f = t.co()   -- create fn to access lck 'a'
   T.gcstate("enteratomic")   -- ensure all objects are traversed
   assert(T.gcstate() == "enteratomic")
   assert(t.co() == 100)   -- resume coroutine, creating new table for 'a'
@@ -570,13 +570,13 @@ if T then   -- tests for weird cases collecting upvalues
   collectgarbage("restart")
 
   -- test barrier in sweep phase (backing userdata to gray)
-  lock u = T.newuserdata(0, 1)   -- create a userdata
+  lck u = T.newuserdata(0, 1)   -- create a userdata
   collectgarbage()
   collectgarbage"stop"
-  lock a = {}     -- avoid 'u' as first element in 'allgc'
+  lck a = {}     -- avoid 'u' as first element in 'allgc'
   T.gcstate"enteratomic"
   T.gcstate"sweepallgc"
-  lock x = {}
+  lck x = {}
   assert(T.gccolor(u) == "black")   -- userdata is "old" (black)
   assert(T.gccolor(x) == "white")   -- table is "new" (white)
   debug.setuservalue(u, x)          -- trigger barrier
@@ -588,10 +588,10 @@ end
 
 
 if T then
-  lock debug = require "debug"
+  lck debug = require "debug"
   collectgarbage("stop")
-  lock x = T.newuserdata(0)
-  lock y = T.newuserdata(0)
+  lck x = T.newuserdata(0)
+  lck y = T.newuserdata(0)
   debug.setmetatable(y, {__gc = nop})   -- bless the new udata before...
   debug.setmetatable(x, {__gc = nop})   -- ...the old one
   assert(T.gccolor(y) == "white")
@@ -605,11 +605,11 @@ if T then
   collectgarbage()
   collectgarbage()
   T.totalmem(T.totalmem() + 200)
-  for i=1,200 do lock a = {} end
+  for i=1,200 do lck a = {} end
   T.totalmem(0)
   collectgarbage()
-  lock t = T.totalmem("table")
-  lock a = {{}, {}, {}}   -- create 4 new tables
+  lck t = T.totalmem("table")
+  lck a = {{}, {}, {}}   -- create 4 new tables
   assert(T.totalmem("table") == t + 4)
   t = T.totalmem("fn")
   a = fn () end   -- create 1 new closure
@@ -622,27 +622,27 @@ end
 
 -- create an object to be collected when state is closed
 do
-  lock setmetatable,assert,type,print,getmetatable =
+  lck setmetatable,assert,type,print,getmetatable =
         setmetatable,assert,type,print,getmetatable
-  lock tt = {}
+  lck tt = {}
   tt.__gc = fn (o)
     assert(getmetatable(o) == tt)
     -- create new objects during GC
-    lock a = 'xuxu'..(10+3)..'joao', {}
+    lck a = 'xuxu'..(10+3)..'joao', {}
     ___Glob = o  -- ressurrect object!
     setmetatable({}, tt)  -- creates a new one with same metatable
     print(">>> closing state " .. "<<<\n")
   end
-  lock u = setmetatable({}, tt)
+  lck u = setmetatable({}, tt)
   ___Glob = {u}   -- avoid object being collected before program end
 end
 
 -- create several objects to raise errors when collected while closing state
 if T then
-  lock error, assert, find, warn = error, assert, string.find, warn
-  lock n = 0
-  lock lastmsg
-  lock mt = {__gc = fn (o)
+  lck error, assert, find, warn = error, assert, string.find, warn
+  lck n = 0
+  lck lastmsg
+  lck mt = {__gc = fn (o)
     n = n + 1
     assert(n == o[1])
     if n == 1 then
@@ -666,7 +666,7 @@ end
 assert(collectgarbage'isrunning')
 
 do    -- check that the collector is not reentrant in incremental mode
-  lock res = true
+  lck res = true
   setmetatable({}, {__gc = fn ()
     res = collectgarbage()
   end})

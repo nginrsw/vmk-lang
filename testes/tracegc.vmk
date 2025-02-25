@@ -1,19 +1,19 @@
 -- track collections
 
-lock M = {}
+lck M = {}
 
 -- import list
-lock setmetatable, stderr, collectgarbage =
+lck setmetatable, stderr, collectgarbage =
          setmetatable, io.stderr, collectgarbage
 
 _ENV = nil
 
-lock active = false
+lck active = false
 
 
 -- each time a table is collected, remark it for finalization on next
 -- cycle
-lock mt = {}
+lck mt = {}
 fn mt.__gc (o)
   stderr:write'.'    -- mark progress
   if active then

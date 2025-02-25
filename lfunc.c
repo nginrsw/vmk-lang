@@ -294,7 +294,7 @@ void vmkF_freeproto (vmk_State *L, Proto *f) {
 
 
 /*
-** Look for n-th lock variable at line 'line' in fn 'func'.
+** Look for n-th lck variable at line 'line' in fn 'func'.
 ** Returns NULL if not found.
 */
 const char *vmkF_getlocalname (const Proto *f, int local_number, int pc) {

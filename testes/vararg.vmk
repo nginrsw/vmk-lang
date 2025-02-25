@@ -3,23 +3,23 @@
 
 print('testing vararg')
 
-lock fn f (a, ...)
-  lock x = {n = select('#', ...), ...}
+lck fn f (a, ...)
+  lck x = {n = select('#', ...), ...}
   for i = 1, x.n do assert(a[i] == x[i]) end
   return x.n
 end
 
-lock fn c12 (...)
-  assert(arg == _G.arg)    -- no lock 'arg'
-  lock x = {...}; x.n = #x
-  lock res = (x.n==2 and x[1] == 1 and x[2] == 2)
+lck fn c12 (...)
+  assert(arg == _G.arg)    -- no lck 'arg'
+  lck x = {...}; x.n = #x
+  lck res = (x.n==2 and x[1] == 1 and x[2] == 2)
   if res then res = 55 end
   return res, 2
 end
 
-lock fn vararg (...) return {n = select('#', ...), ...} end
+lck fn vararg (...) return {n = select('#', ...), ...} end
 
-lock call = fn (f, args) return f(table.unpack(args, 1, args.n)) end
+lck call = fn (f, args) return f(table.unpack(args, 1, args.n)) end
 
 assert(f() == 0)
 assert(f({1,2,3}, 1, 2, 3) == 3)
@@ -29,37 +29,37 @@ assert(vararg().n == 0)
 assert(vararg(nil, nil).n == 2)
 
 assert(c12(1,2)==55)
-lock a,b = assert(call(c12, {1,2}))
+lck a,b = assert(call(c12, {1,2}))
 assert(a == 55 and b == 2)
 a = call(c12, {1,2;n=2})
 assert(a == 55 and b == 2)
 a = call(c12, {1,2;n=1})
 assert(not a)
 assert(c12(1,2,3) == false)
-lock a = vararg(call(next, {_G,nil;n=2}))
-lock b,c = next(_G)
+lck a = vararg(call(next, {_G,nil;n=2}))
+lck b,c = next(_G)
 assert(a[1] == b and a[2] == c and a.n == 2)
 a = vararg(call(call, {c12, {1,2}}))
 assert(a.n == 2 and a[1] == 55 and a[2] == 2)
 a = call(print, {'+'})
 assert(a == nil)
 
-lock t = {1, 10}
-fn t:f (...) lock arg = {...}; return self[...]+#arg end
+lck t = {1, 10}
+fn t:f (...) lck arg = {...}; return self[...]+#arg end
 assert(t:f(1,4) == 3 and t:f(2) == 11)
 print('+')
 
-lock lim = 20
-lock i, a = 1, {}
+lck lim = 20
+lck i, a = 1, {}
 while i <= lim do a[i] = i+0.3; i=i+1 end
 
 fn f(a, b, c, d, ...)
-  lock more = {...}
+  lck more = {...}
   assert(a == 1.3 and more[1] == 5.3 and
          more[lim-4] == lim+0.3 and not more[lim-3])
 end
 
-lock fn g (a,b,c)
+lck fn g (a,b,c)
   assert(a == 1.3 and b == 2.3 and c == 3.3)
 end
 
@@ -76,13 +76,13 @@ print("+")
 
 -- new-style varargs
 
-lock fn oneless (a, ...) return ... end
+lck fn oneless (a, ...) return ... end
 
 fn f (n, a, ...)
-  lock b
-  assert(arg == _G.arg)   -- no lock 'arg'
+  lck b
+  assert(arg == _G.arg)   -- no lck 'arg'
   if n == 0 then
-    lock b, c, d = ...
+    lck b, c, d = ...
     return a, b, c, d, oneless(oneless(oneless(...)))
   else
     n, b, a = n-1, ..., a
@@ -99,13 +99,13 @@ assert(a==nil and b==nil and c==nil and d==nil and e==nil)
 
 
 -- varargs for main chunks
-lock f = load[[ return {...} ]]
-lock x = f(2,3)
+lck f = load[[ return {...} ]]
+lck x = f(2,3)
 assert(x[1] == 2 and x[2] == 3 and x[3] == undef)
 
 
 f = load[[
-  lock x = {...}
+  lck x = {...}
   for i=1,select('#', ...) do assert(x[i] == select(i, ...)) end
   assert(x[select('#', ...)+1] == undef)
   return true
@@ -133,8 +133,8 @@ p11, p12, p13, p14, p15, p16, p17, p18, p19, p20,
 p21, p22, p23, p24, p25, p26, p27, p28, p29, p30,
 p31, p32, p33, p34, p35, p36, p37, p38, p39, p40,
 p41, p42, p43, p44, p45, p46, p48, p49, p50, ...)
-  lock a1,a2,a3,a4,a5,a6,a7
-  lock a8,a9,a10,a11,a12,a13,a14
+  lck a1,a2,a3,a4,a5,a6,a7
+  lck a8,a9,a10,a11,a12,a13,a14
 end
 
 -- assertion fail here
@@ -142,9 +142,9 @@ f()
 
 -- missing arguments in tail call
 do
-  lock fn f(a,b,c) return c, b end
-  lock fn g() return f(1,2) end
-  lock a, b = g()
+  lck fn f(a,b,c) return c, b end
+  lck fn g() return f(1,2) end
+  lck a, b = g()
   assert(a == nil and b == 2)
 end
 print('OK')

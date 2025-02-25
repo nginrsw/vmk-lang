@@ -92,16 +92,16 @@ VMKI_FUNC void vmk_printvalue (struct TValue *v);
 VMKI_FUNC void vmk_printstack (vmk_State *L);
 
 
-/* test for locked/unlock */
+/* test for lock/unlock */
 
-struct L_EXTRA { int locked; int *plock; };
+struct L_EXTRA { int lock; int *plock; };
 #undef VMK_EXTRASPACE
 #define VMK_EXTRASPACE	sizeof(struct L_EXTRA)
 #define getlock(l)	cast(struct L_EXTRA*, vmk_getextraspace(l))
 #define vmki_userstateopen(l)  \
-	(getlock(l)->locked = 0, getlock(l)->plock = &(getlock(l)->locked))
+	(getlock(l)->lock = 0, getlock(l)->plock = &(getlock(l)->lock))
 #define vmki_userstateclose(l)  \
-  vmk_assert(getlock(l)->locked == 1 && getlock(l)->plock == &(getlock(l)->locked))
+  vmk_assert(getlock(l)->lock == 1 && getlock(l)->plock == &(getlock(l)->lock))
 #define vmki_userstatethread(l,l1) \
   vmk_assert(getlock(l1)->plock == getlock(l)->plock)
 #define vmki_userstatefree(l,l1) \

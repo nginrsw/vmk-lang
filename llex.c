@@ -42,10 +42,11 @@
 
 
 /* ORDER RESERVED */
+// change local to lck & function to fn for short-terms
 static const char *const vmkX_tokens [] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "fn", "goto", "if",
-    "in", "lock", "nil", "not", "or", "repeat",
+    "in", "lck", "nil", "not", "or", "repeat",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",

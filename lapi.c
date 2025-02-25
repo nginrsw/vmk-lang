@@ -864,7 +864,7 @@ static void auxsetstr (vmk_State *L, const TValue *t, const char *k) {
     vmkV_finishset(L, t, s2v(L->top.p - 1), s2v(L->top.p - 2), hres);
     L->top.p -= 2;  /* pop value and key */
   }
-  vmk_unlock(L);  /* locked done by caller */
+  vmk_unlock(L);  /* lock done by caller */
 }
 
 

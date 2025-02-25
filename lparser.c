@@ -30,7 +30,7 @@
 
 
 
-/* maximum number of lock variables per fn (must be smaller
+/* maximum number of lck variables per fn (must be smaller
    than 250, due to the bytecode format) */
 #define MAXVARS		200
 
@@ -169,7 +169,7 @@ static void codename (LexState *ls, expdesc *e) {
 
 
 /*
-** Register a new lock variable in the active 'Proto' (for debug
+** Register a new lck variable in the active 'Proto' (for debug
 ** information).
 */
 static short registerlocalvar (LexState *ls, FuncState *fs,
@@ -177,7 +177,7 @@ static short registerlocalvar (LexState *ls, FuncState *fs,
   Proto *f = fs->f;
   int oldsize = f->sizelocvars;
   vmkM_growvector(ls->L, f->locvars, fs->ndebugvars, f->sizelocvars,
-                  LocVar, SHRT_MAX, "lock variables");
+                  LocVar, SHRT_MAX, "lck variables");
   while (oldsize < f->sizelocvars)
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
@@ -188,7 +188,7 @@ static short registerlocalvar (LexState *ls, FuncState *fs,
 
 
 /*
-** Create a new lock variable with the given 'name' and given 'kind'.
+** Create a new lck variable with the given 'name' and given 'kind'.
 ** Return its index in the fn.
 */
 static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
@@ -197,9 +197,9 @@ static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
   vmkY_checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
-                 MAXVARS, "lock variables");
+                 MAXVARS, "lck variables");
   vmkM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
-                  dyd->actvar.size, Vardesc, SHRT_MAX, "lock variables");
+                  dyd->actvar.size, Vardesc, SHRT_MAX, "lck variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = kind;  /* default */
   var->vd.name = name;
@@ -208,7 +208,7 @@ static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
 
 
 /*
-** Create a new lock variable with the given 'name' and regular kind.
+** Create a new lck variable with the given 'name' and regular kind.
 */
 static int new_localvar (LexState *ls, TString *name) {
   return new_localvarkind(ls, name, VDKREG);
@@ -392,7 +392,7 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
 
 
 /*
-** Look for an active lock variable with the name 'n' in the
+** Look for an active lck variable with the name 'n' in the
 ** fn 'fs'. If found, initialize 'var' with it and return
 ** its expression kind; otherwise return -1.
 */
@@ -448,13 +448,13 @@ static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
     int v = searchvar(fs, n, var);  /* look up locals at current level */
     if (v >= 0) {  /* found? */
       if (v == VLOCAL && !base)
-        markupval(fs, var->u.var.vidx);  /* lock will be used as an upval */
+        markupval(fs, var->u.var.vidx);  /* lck will be used as an upval */
     }
-    else {  /* not found as lock at current level; try upvalues */
+    else {  /* not found as lck at current level; try upvalues */
       int idx = searchupvalue(fs, n);  /* try existing upvalues */
       if (idx < 0) {  /* not found? */
         singlevaraux(fs->prev, n, var, 0);  /* try upper levels */
-        if (var->k == VLOCAL || var->k == VUPVAL)  /* lock or upvalue? */
+        if (var->k == VLOCAL || var->k == VUPVAL)  /* lck or upvalue? */
           idx  = newupvalue(fs, n, var);  /* will be a new upvalue */
         else  /* it is a global or a constant */
           return;  /* don't need to do anything at this level */
@@ -518,12 +518,12 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 
 /*
 ** Generates an error that a goto jumps into the scope of some
-** lock variable.
+** lck variable.
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
   TString *tsname = getlocalvardesc(ls->fs, gt->nactvar)->vd.name;
   const char *varname = getstr(tsname);
-  const char *msg = "<goto %s> at line %d jumps into the scope of lock '%s'";
+  const char *msg = "<goto %s> at line %d jumps into the scope of lck '%s'";
   msg = vmkO_pushfstring(ls->L, msg, getstr(gt->name), gt->line, varname);
   vmkK_semerror(ls, msg);  /* raise the error */
 }
@@ -656,7 +656,7 @@ static void solvegotos (FuncState *fs, BlockCnt *bl) {
       igt++;  /* go to next goto */
     }
   }
-  ls->dyd->label.n = bl->firstlabel;  /* remove lock labels */
+  ls->dyd->label.n = bl->firstlabel;  /* remove lck labels */
 }
 
 
@@ -1355,19 +1355,19 @@ static void block (LexState *ls) {
 */
 struct LHS_assign {
   struct LHS_assign *prev;
-  expdesc v;  /* variable (global, lock, upvalue, or indexed) */
+  expdesc v;  /* variable (global, lck, upvalue, or indexed) */
 };
 
 
 /*
-** check whether, in an assignment to an upvalue/lock variable, the
-** upvalue/lock variable is begin used in a previous assignment to a
-** table. If so, save original upvalue/lock value in a safe place and
+** check whether, in an assignment to an upvalue/lck variable, the
+** upvalue/lck variable is begin used in a previous assignment to a
+** table. If so, save original upvalue/lck value in a safe place and
 ** use this safe copy in the previous assignment.
 */
 static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   FuncState *fs = ls->fs;
-  lu_byte extra = fs->freereg;  /* eventual position to save lock variable */
+  lu_byte extra = fs->freereg;  /* eventual position to save lck variable */
   int conflict = 0;
   for (; lh; lh = lh->prev) {  /* check all previous assignments */
     if (vkisindexed(lh->v.k)) {  /* assignment to table field? */
@@ -1380,10 +1380,10 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
       }
       else {  /* table is a register */
         if (v->k == VLOCAL && lh->v.u.ind.t == v->u.var.ridx) {
-          conflict = 1;  /* table is the lock being assigned now */
+          conflict = 1;  /* table is the lck being assigned now */
           lh->v.u.ind.t = extra;  /* assignment will use safe copy */
         }
-        /* is index the lock being assigned? */
+        /* is index the lck being assigned? */
         if (lh->v.k == VINDEXED && v->k == VLOCAL &&
             lh->v.u.ind.idx == v->u.var.ridx) {
           conflict = 1;
@@ -1393,7 +1393,7 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
     }
   }
   if (conflict) {
-    /* copy upvalue/lock value to a temporary (in position 'extra') */
+    /* copy upvalue/lck value to a temporary (in position 'extra') */
     if (v->k == VLOCAL)
       vmkK_codeABC(fs, OP_MOVE, extra, v->u.var.ridx, 0);
     else
@@ -1699,7 +1699,7 @@ static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
   int fvar = fs->nactvar;  /* fn's variable index */
-  new_localvar(ls, str_checkname(ls));  /* new lock variable */
+  new_localvar(ls, str_checkname(ls));  /* new lck variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
   body(ls, &b, 0, ls->linenumber);  /* fn created in next register */
   /* debug information will only see the variable after this point! */
@@ -1748,7 +1748,7 @@ static void localstat (LexState *ls) {
     vidx = new_localvarkind(ls, vname, kind);
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1)  /* one already present? */
-        vmkK_semerror(ls, "multiple to-be-closed variables in lock list");
+        vmkK_semerror(ls, "multiple to-be-closed variables in lck list");
       toclose = fs->nactvar + nvars;
     }
     nvars++;
@@ -1888,7 +1888,7 @@ static void statement (LexState *ls) {
     }
     case TK_LOCAL: {  /* stat -> localstat */
       vmkX_next(ls);  /* skip LOCAL */
-      if (testnext(ls, TK_FUNCTION))  /* lock fn? */
+      if (testnext(ls, TK_FUNCTION))  /* lck fn? */
         localfunc(ls);
       else
         localstat(ls);

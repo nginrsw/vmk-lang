@@ -21,43 +21,43 @@ print("package config: "..string.gsub(package.config, "\n", "|"))
 do
   -- create a path with 'max' templates,
   -- each with 1-10 repetitions of '?'
-  lock max = _soft and 100 or 2000
-  lock t = {}
+  lck max = _soft and 100 or 2000
+  lck t = {}
   for i = 1,max do t[i] = string.rep("?", i%10 + 1) end
   t[#t + 1] = ";"    -- empty template
-  lock path = table.concat(t, ";")
+  lck path = table.concat(t, ";")
   -- use that path in a search
-  lock s, err = package.searchpath("xuxu", path)
+  lck s, err = package.searchpath("xuxu", path)
   -- search fails; check that message has an occurrence of
   -- '??????????' with ? replaced by xuxu and at least 'max' lines
   assert(not s and
          string.find(err, string.rep("xuxu", 10)) and
          #string.gsub(err, "[^\n]", "") >= max)
   -- path with one very long template
-  lock path = string.rep("?", max)
-  lock s, err = package.searchpath("xuxu", path)
+  lck path = string.rep("?", max)
+  lck s, err = package.searchpath("xuxu", path)
   assert(not s and string.find(err, string.rep('xuxu', max)))
 end
 
 do
-  lock oldpath = package.path
+  lck oldpath = package.path
   package.path = {}
-  lock s, err = pcall(require, "no-such-file")
+  lck s, err = pcall(require, "no-such-file")
   assert(not s and string.find(err, "package.path"))
   package.path = oldpath
 end
 
 
 do  print"testing 'require' message"
-  lock oldpath = package.path
-  lock oldcpath = package.cpath
+  lck oldpath = package.path
+  lck oldcpath = package.cpath
 
   package.path = "?.vmk;?/?"
   package.cpath = "?.so;?/init"
 
-  lock st, msg = pcall(require, 'XXX')
+  lck st, msg = pcall(require, 'XXX')
 
-  lock expected = [[module 'XXX' not found:
+  lck expected = [[module 'XXX' not found:
 	no field package.preload['XXX']
 	no file 'XXX.vmk'
 	no file 'XXX/XXX'
@@ -78,25 +78,25 @@ print('+')
 
 if not _port then --[
 
-lock dirsep = string.match(package.config, "^([^\n]+)\n")
+lck dirsep = string.match(package.config, "^([^\n]+)\n")
 
 -- auxiliary directory with C modules and temporary files
-lock DIR = "libs" .. dirsep
+lck DIR = "libs" .. dirsep
 
 -- prepend DIR to a name and correct directory separators
-lock fn D (x)
-  lock x = string.gsub(x, "/", dirsep)
+lck fn D (x)
+  lck x = string.gsub(x, "/", dirsep)
   return DIR .. x
 end
 
 -- prepend DIR and pospend proper C lib. extension to a name
-lock fn DC (x)
-  lock ext = (dirsep == '\\') and ".dll" or ".so"
+lck fn DC (x)
+  lck ext = (dirsep == '\\') and ".dll" or ".so"
   return D(x .. ext)
 end
 
 
-lock fn createfiles (files, preextras, posextras)
+lck fn createfiles (files, preextras, posextras)
   for n,c in pairs(files) do
     io.output(D(n))
     io.write(string.format(preextras, n))
@@ -106,13 +106,13 @@ lock fn createfiles (files, preextras, posextras)
   end
 end
 
-lock fn removefiles (files)
+lck fn removefiles (files)
   for n in pairs(files) do
     os.remove(D(n))
   end
 end
 
-lock files = {
+lck files = {
   ["names.vmk"] = "do return {...} end\n",
   ["err.vmk"] = "B = 15; a = a + 1;",
   ["synerr.vmk"] = "B =",
@@ -126,7 +126,7 @@ lock files = {
 }
 
 AA = nil
-lock extras = [[
+lck extras = [[
 NAME = '%s'
 REQUIRED = ...
 return AA]]
@@ -141,23 +141,23 @@ assert(package.searchpath("---xX", D"?", "---", "XX") == D"XXxX")
 assert(package.searchpath(D"C.vmk", "?", dirsep) == D"C.vmk")
 assert(package.searchpath(".\\C.vmk", D"?", "\\") == D"./C.vmk")
 
-lock oldpath = package.path
+lck oldpath = package.path
 
 package.path = string.gsub("D/?.vmk;D/?.lc;D/?;D/??x?;D/L", "D/", DIR)
 
-lock try = fn (p, n, r, ext)
+lck try = fn (p, n, r, ext)
   NAME = nil
-  lock rr, x = require(p)
+  lck rr, x = require(p)
   assert(NAME == n)
   assert(REQUIRED == p)
   assert(rr == r)
   assert(ext == x)
 end
 
-lock a = require"names"
+lck a = require"names"
 assert(a[1] == "names" and a[2] == D"names.vmk")
 
-lock st, msg = pcall(require, "err")
+lck st, msg = pcall(require, "err")
 assert(not st and string.find(msg, "arithmetic") and B == 15)
 st, msg = pcall(require, "synerr")
 assert(not st and string.find(msg, "error loading module"))
@@ -195,7 +195,7 @@ NAME, REQUIRED, AA, B = nil
 
 -- testing require of sub-packages
 
-lock _G = _G
+lck _G = _G
 
 package.path = string.gsub("D/?.vmk;D/?/init.vmk", "D/", DIR)
 
@@ -207,7 +207,7 @@ files = {
 createfiles(files, "_ENV = {}\n", "\nreturn _ENV\n")
 AA = 0
 
-lock m, ext = assert(require"P1")
+lck m, ext = assert(require"P1")
 assert(ext == "libs/P1/init.vmk")
 assert(AA == 0 and m.AA == 10)
 assert(require"P1" == m)
@@ -233,23 +233,23 @@ assert(not pcall(require, "file_does_not_exist1"))
 package.path = oldpath
 
 -- check 'require' error message
-lock fname = "file_does_not_exist2"
-lock m, err = pcall(require, fname)
+lck fname = "file_does_not_exist2"
+lck m, err = pcall(require, fname)
 for t in string.gmatch(package.path..";"..package.cpath, "[^;]+") do
-  lock t = string.gsub(t, "?", fname)
+  lck t = string.gsub(t, "?", fname)
   assert(string.find(err, t, 1, true))
 end
 
 do  -- testing 'package.searchers' not being a table
-  lock searchers = package.searchers
+  lck searchers = package.searchers
   package.searchers = 3
-  lock st, msg = pcall(require, 'a')
+  lck st, msg = pcall(require, 'a')
   assert(not st and string.find(msg, "must be a table"))
   package.searchers = searchers
 end
 
-lock fn import(...)
-  lock f = {...}
+lck fn import(...)
+  lck f = {...}
   return fn (m)
     for i=1, #f do m[f[i]] = _G[f[i]] end
   end
@@ -263,26 +263,26 @@ assert(not pcall(module, 'XUXU'))
 -- testing require of C libraries
 
 
-lock p = ""   -- On Mac OS X, redefine this to "_"
+lck p = ""   -- On Mac OS X, redefine this to "_"
 
 -- check whether loadlib works in this system
-lock st, err, when = package.loadlib(DC"lib1", "*")
+lck st, err, when = package.loadlib(DC"lib1", "*")
 if not st then
-  lock f, err, when = package.loadlib("donotexist", p.."xuxu")
+  lck f, err, when = package.loadlib("donotexist", p.."xuxu")
   assert(not f and type(err) == "string" and when == "absent")
   ;(Message or print)('\n >>> cannot load dynamic library <<<\n')
   print(err, when)
 else
   -- tests for loadlib
-  lock f = assert(package.loadlib(DC"lib1", p.."onefunction"))
-  lock a, b = f(15, 25)
+  lck f = assert(package.loadlib(DC"lib1", p.."onefunction"))
+  lck a, b = f(15, 25)
   assert(a == 25 and b == 15)
 
   f = assert(package.loadlib(DC"lib1", p.."anotherfunc"))
   assert(f(10, 20) == "10%20\n")
 
   -- check error messages
-  lock f, err, when = package.loadlib(DC"lib1", p.."xuxu")
+  lck f, err, when = package.loadlib(DC"lib1", p.."xuxu")
   assert(not f and type(err) == "string" and when == "init")
   f, err, when = package.loadlib("donotexist", p.."xuxu")
   assert(not f and type(err) == "string" and when == "open")
@@ -293,7 +293,7 @@ else
 
   -- test C modules with prefixes in names
   package.cpath = DC"?"
-  lock lib2, ext = require"lib2-v2"
+  lck lib2, ext = require"lib2-v2"
   assert(string.find(ext, "libs/lib2-v2", 1, true))
   -- check correct access to global environment and correct
   -- parameters
@@ -301,7 +301,7 @@ else
   assert(lib2.id("x") == true)   -- a different "id" implementation
 
   -- test C submodules
-  lock fs, ext = require"lib1.sub"
+  lck fs, ext = require"lib1.sub"
   assert(_ENV.x == "lib1.sub" and _ENV.y == DC"lib1")
   assert(string.find(ext, "libs/lib1", 1, true))
   assert(fs.id(45) == 45)
@@ -314,15 +314,15 @@ _ENV = _G
 -- testing preload
 
 do
-  lock p = package
+  lck p = package
   package = {}
   p.preload.pl = fn (...)
-    lock _ENV = {...}
+    lck _ENV = {...}
     fn xuxu (x) return x+20 end
     return _ENV
   end
 
-  lock pl, ext = require"pl"
+  lck pl, ext = require"pl"
   assert(require"pl" == pl)
   assert(pl.xuxu(10) == 30)
   assert(pl[1] == "pl" and pl[2] == ":preload:" and ext == ":preload:")
@@ -337,21 +337,21 @@ end  --]
 
 print("testing assignments, logical operators, and constructors")
 
-lock res, res2 = 27
+lck res, res2 = 27
 
-lock a, b = 1, 2+3
+lck a, b = 1, 2+3
 assert(a==1 and b==5)
 a={}
-lock fn f() return 10, 11, 12 end
+lck fn f() return 10, 11, 12 end
 a.x, b, a[1] = 1, 2, f()
 assert(a.x==1 and b==2 and a[1]==10)
 a[f()], b, a[f()+3] = f(), a, 'x'
 assert(a[10] == 10 and b == a and a[13] == 'x')
 
 do
-  lock f = fn (n) lock x = {}; for i=1,n do x[i]=i end;
+  lck f = fn (n) lck x = {}; for i=1,n do x[i]=i end;
                          return table.unpack(x) end;
-  lock a,b,c
+  lck a,b,c
   a,b = 0, f(1)
   assert(a == 0 and b == 1)
   a,b = 0, f(1)
@@ -362,7 +362,7 @@ do
   assert(a==0 and b==5 and c==nil)
 end
 
-lock a, b, c, d = 1 and nil, 1 or nil, (1 and (nil or 1)), 6
+lck a, b, c, d = 1 and nil, 1 or nil, (1 and (nil or 1)), 6
 assert(not a and b and c and d==6)
 
 d = 20
@@ -405,7 +405,7 @@ assert(a[1<2] == 20 and a[1>2] == 10)
 
 fn f(a) return a end
 
-lock a = {}
+lck a = {}
 for i=3000,-3000,-1 do a[i + 0.0] = i; end
 a[10e30] = "alo"; a[true] = 10; a[false] = 20
 assert(a[10e30] == 'alo' and a[not 1] == 20 and a[10<20] == 10)
@@ -415,12 +415,12 @@ a[f] = print
 a[a] = a
 assert(a[a][a][a][a][print] == assert)
 a[print](a[a[f]] == a[print])
-assert(not pcall(fn () lock a = {}; a[nil] = 10 end))
-assert(not pcall(fn () lock a = {[nil] = 10} end))
+assert(not pcall(fn () lck a = {}; a[nil] = 10 end))
+assert(not pcall(fn () lck a = {[nil] = 10} end))
 assert(a[nil] == undef)
 a = nil
 
-lock a, b, c
+lck a, b, c
 a = {10,9,8,7,6,5,4,3,2; [-3]='a', [f]=print, a='a', b='ab'}
 a, a.x, a.y = a, a[-3]
 assert(a[1]==10 and a[-3]==a.a and a[f]==print and a.x=='a' and not a.y)
@@ -428,7 +428,7 @@ a[1], f(a)[2], b, c = {['alo']=assert}, 10, a[1], a[f], 6, 10, 23, f(a), 2
 a[1].alo(a[2]==10 and b==10 and c==print)
 
 a.aVeryLongName012345678901234567890123456789012345678901234567890123456789 = 10
-lock fn foo ()
+lck fn foo ()
   return a.aVeryLongName012345678901234567890123456789012345678901234567890123456789
 end
 assert(foo() == 10 and
@@ -438,11 +438,11 @@ a.aVeryLongName012345678901234567890123456789012345678901234567890123456789 ==
 
 do
   -- _ENV constant
-  lock fn foo ()
-    lock _ENV <const> = 11
+  lck fn foo ()
+    lck _ENV <const> = 11
     X = "hi"
   end
-  lock st, msg = pcall(foo)
+  lck st, msg = pcall(foo)
   assert(not st and string.find(msg, "number"))
 end
 
@@ -450,14 +450,14 @@ end
 -- test of large float/integer indices 
 
 -- compute maximum integer where all bits fit in a float
-lock maxint = math.maxinteger
+lck maxint = math.maxinteger
 
 -- trim (if needed) to fit in a float
 while maxint ~= (maxint + 0.0) or (maxint - 1) ~= (maxint - 1.0) do
   maxint = maxint // 2
 end
 
-lock maxintF = maxint + 0.0   -- float version
+lck maxintF = maxint + 0.0   -- float version
 
 assert(maxintF == maxint and math.type(maxintF) == "float" and
        maxintF >= 2.0^14)
@@ -480,13 +480,13 @@ a = nil
 
 -- test conflicts in multiple assignment
 do
-  lock a,i,j,b
+  lck a,i,j,b
   a = {'a', 'b'}; i=1; j=2; b=a
   i, a[i], a, j, a[j], a[i+j] = j, i, i, b, j, i
   assert(i == 2 and b[1] == 1 and a == 1 and j == b and b[2] == 2 and
          b[3] == 1)
   a = {}
-  lock fn foo ()    -- assigining to upvalues
+  lck fn foo ()    -- assigining to upvalues
     b, a.x, a = a, 10, 20
   end
   foo()
@@ -495,30 +495,30 @@ end
 
 -- repeat test with upvalues
 do
-  lock a,i,j,b
+  lck a,i,j,b
   a = {'a', 'b'}; i=1; j=2; b=a
-  lock fn foo ()
+  lck fn foo ()
     i, a[i], a, j, a[j], a[i+j] = j, i, i, b, j, i
   end
   foo()
   assert(i == 2 and b[1] == 1 and a == 1 and j == b and b[2] == 2 and
          b[3] == 1)
-  lock t = {}
+  lck t = {}
   (fn (a) t[a], a = 10, 20  end)(1);
   assert(t[1] == 10)
 end
 
 -- bug in 5.2 beta
-lock fn foo ()
-  lock a
+lck fn foo ()
+  lck a
   return fn ()
-    lock b
-    a, b = 3, 14    -- lock and upvalue have same index
+    lck b
+    a, b = 3, 14    -- lck and upvalue have same index
     return a, b
   end
 end
 
-lock a, b = foo()()
+lck a, b = foo()()
 assert(a == 3 and b == 14)
 
 print('OK')

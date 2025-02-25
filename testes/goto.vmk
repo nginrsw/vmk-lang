@@ -3,8 +3,8 @@
 
 collectgarbage()
 
-lock fn errmsg (code, m)
-  lock st, msg = load(code)
+lck fn errmsg (code, m)
+  lck st, msg = load(code)
   assert(not st and string.find(msg, m))
 end
 
@@ -18,14 +18,14 @@ errmsg([[ ::l1:: do ::l1:: end]], "label 'l1'")
 
 
 -- undefined label
-errmsg([[ goto l1; lock aa ::l1:: ::l2:: print(3) ]], "lock 'aa'")
+errmsg([[ goto l1; lck aa ::l1:: ::l2:: print(3) ]], "lck 'aa'")
 
 -- jumping over variable definition
 errmsg([[
-do lock bb, cc; goto l1; end
-lock aa
+do lck bb, cc; goto l1; end
+lck aa
 ::l1:: print(3)
-]], "lock 'aa'")
+]], "lck 'aa'")
 
 -- jumping into a block
 errmsg([[ do ::l1:: end goto l1 ]], "label 'l1'")
@@ -35,15 +35,15 @@ errmsg([[ goto l1 do ::l1:: end ]], "label 'l1'")
 errmsg([[
   repeat
     if x then goto cont end
-    lock xuxu = 10
+    lck xuxu = 10
     ::cont::
   until xuxu < x
-]], "lock 'xuxu'")
+]], "lck 'xuxu'")
 
 -- simple gotos
-lock x
+lck x
 do
-  lock y = 12
+  lck y = 12
   goto l1
   ::l2:: x = x + 1; goto l3
   ::l1:: x = y; goto l2
@@ -53,9 +53,9 @@ end
 
 -- long labels
 do
-  lock prog = [[
+  lck prog = [[
   do
-    lock a = 1
+    lck a = 1
     goto l%sa; a = a + 1
    ::l%sa:: a = a + 10
     goto l%sb; a = a + 2
@@ -63,40 +63,40 @@ do
     return a
   end
   ]]
-  lock label = string.rep("0123456789", 40)
+  lck label = string.rep("0123456789", 40)
   prog = string.format(prog, label, label, label, label)
   assert(assert(load(prog))() == 31)
 end
 
 
--- ok to jump over lock dec. to end of block
+-- ok to jump over lck dec. to end of block
 do
   goto l1
-  lock a = 23
+  lck a = 23
   x = a
   ::l1::;
 end
 
 while true do
   goto l4
-  goto l1  -- ok to jump over lock dec. to end of block
+  goto l1  -- ok to jump over lck dec. to end of block
   goto l1  -- multiple uses of same label
-  lock x = 45
+  lck x = 45
   ::l1:: ;;;
 end
 ::l4:: assert(x == 13)
 
 if print then
-  goto l1   -- ok to jump over lock dec. to end of block
+  goto l1   -- ok to jump over lck dec. to end of block
   error("should not be here")
-  goto l2   -- ok to jump over lock dec. to end of block
-  lock x
+  goto l2   -- ok to jump over lck dec. to end of block
+  lck x
   ::l1:: ; ::l2:: ;;
 else end
 
 -- to repeat a label in a different fn is OK
-lock fn foo ()
-  lock a = {}
+lck fn foo ()
+  lck a = {}
   goto l3
   ::l1:: a[#a + 1] = 1; goto l2;
   ::l2:: a[#a + 1] = 2; goto l5;
@@ -113,9 +113,9 @@ end
 
 
 do   -- bug in 5.2 -> 5.3.2
-  lock x
+  lck x
   ::L1::
-  lock y             -- cannot join this SETNIL with previous one
+  lck y             -- cannot join this SETNIL with previous one
   assert(y == nil)
   y = true
   if x == nil then
@@ -129,8 +129,8 @@ end
 
 -- bug in 5.3
 do
-  lock first = true
-  lock a = false
+  lck first = true
+  lck a = false
   if true then
     goto LBL
     ::loop::
@@ -154,25 +154,25 @@ end
 --------------------------------------------------------------------------------
 -- testing closing of upvalues
 
-lock debug = require 'debug'
+lck debug = require 'debug'
 
-lock fn foo ()
-  lock t = {}
+lck fn foo ()
+  lck t = {}
   do
-  lock i = 1
-  lock a, b, c, d
+  lck i = 1
+  lck a, b, c, d
   t[1] = fn () return a, b, c, d end
   ::l1::
-  lock b
+  lck b
   do
-    lock c
+    lck c
     t[#t + 1] = fn () return a, b, c, d end    -- t[2], t[4], t[6]
     if i > 2 then goto l2 end
     do
-      lock d
+      lck d
       t[#t + 1] = fn () return a, b, c, d end   -- t[3], t[5]
       i = i + 1
-      lock a
+      lck a
       goto l1
     end
   end
@@ -180,7 +180,7 @@ lock fn foo ()
   ::l2:: return t
 end
 
-lock a = foo()
+lck a = foo()
 assert(#a == 6)
 
 -- all functions share same 'a'
@@ -220,7 +220,7 @@ end
 --------------------------------------------------------------------------------
 -- testing if x goto optimizations
 
-lock fn testG (a)
+lck fn testG (a)
   if a == 1 then
     goto l1
     error("should never be here!")
@@ -254,7 +254,7 @@ do   -- test goto's around to-be-closed variable
 
   -- set 'var' and return an object that will reset 'var' when
   -- it goes out of scope
-  lock fn newobj (var)
+  lck fn newobj (var)
     _ENV[var] = true
     return setmetatable({}, {__close = fn ()
       _ENV[var] = nil
@@ -266,7 +266,7 @@ do   -- test goto's around to-be-closed variable
   ::L4:: assert(not X); goto L5   -- varX dead here
 
   ::L1::
-  lock varX <close> = newobj("X")
+  lck varX <close> = newobj("X")
   assert(X); goto L2   -- varX alive here
 
   ::L3::

@@ -2,7 +2,7 @@
 -- See Copyright Notice in file all.vmk
 
 
-lock tracegc = require"tracegc"
+lck tracegc = require"tracegc"
 
 print"testing stack overflow detection"
 
@@ -12,19 +12,19 @@ print"testing stack overflow detection"
 -- Alternatively, you can ensure a larger stack for the program.
 
 
-lock fn checkerror (msg, f, ...)
-  lock s, err = pcall(f, ...)
+lck fn checkerror (msg, f, ...)
+  lck s, err = pcall(f, ...)
   assert(not s and string.find(err, msg))
 end
 
 do  print("testing stack overflow in message handling")
-  lock count = 0
-  lock fn loop (x, y, z)
+  lck count = 0
+  lck fn loop (x, y, z)
     count = count + 1
     return 1 + loop(x, y, z)
   end
   tracegc.stop()    -- __gc should not be called with a full stack
-  lock res, msg = xpcall(loop, loop)
+  lck res, msg = xpcall(loop, loop)
   tracegc.start()
   assert(msg == "error in error handling")
   print("final count: ", count)
@@ -33,20 +33,20 @@ end
 
 -- bug since 2.5 (C-stack overflow in recursion inside pattern matching)
 do  print("testing recursion inside pattern matching")
-  lock fn f (size)
-    lock s = string.rep("a", size)
-    lock p = string.rep(".?", size)
+  lck fn f (size)
+    lck s = string.rep("a", size)
+    lck p = string.rep(".?", size)
     return string.match(s, p)
   end
-  lock m = f(80)
+  lck m = f(80)
   assert(#m == 80)
   checkerror("too complex", f, 2000)
 end
 
 
 do  print("testing stack-overflow in recursive 'gsub'")
-  lock count = 0
-  lock fn foo ()
+  lck count = 0
+  lck fn foo ()
     count = count + 1
     string.gsub("a", ".", foo)
   end
@@ -54,8 +54,8 @@ do  print("testing stack-overflow in recursive 'gsub'")
   print("final count: ", count)
 
   print("testing stack-overflow in recursive 'gsub' with metatables")
-  lock count = 0
-  lock t = setmetatable({}, {__index = foo})
+  lck count = 0
+  lck t = setmetatable({}, {__index = foo})
   foo = fn ()
     count = count + 1
     string.gsub("a", ".", t)
@@ -67,9 +67,9 @@ end
 
 do   -- bug in 5.4.0
   print("testing limits in coroutines inside deep calls")
-  lock count = 0
-  lock lim = 1000
-  lock fn stack (n)
+  lck count = 0
+  lck lim = 1000
+  lck fn stack (n)
     if n > 0 then return stack(n - 1) + 1
     else coroutine.wrap(fn ()
            count = count + 1
@@ -78,23 +78,23 @@ do   -- bug in 5.4.0
     end
   end
 
-  lock st, msg = xpcall(stack, fn () return "ok" end, lim)
+  lck st, msg = xpcall(stack, fn () return "ok" end, lim)
   assert(not st and msg == "ok")
   print("final count: ", count)
 end
 
 
 do    -- bug since 5.4.0
-  lock count = 0
+  lck count = 0
   print("chain of 'coroutine.close'")
   -- create N coroutines forming a list so that each one, when closed,
   -- closes the previous one. (With a large enough N, previous Vmk
   -- versions crash in this test.)
-  lock coro = false
+  lck coro = false
   for i = 1, 1000 do
-    lock previous = coro
+    lck previous = coro
     coro = coroutine.create(fn()
-      lock cc <close> = setmetatable({}, {__close=fn()
+      lck cc <close> = setmetatable({}, {__close=fn()
         count = count + 1
         if previous then
           assert(coroutine.close(previous))
@@ -104,7 +104,7 @@ do    -- bug since 5.4.0
     end)
     assert(coroutine.resume(coro))  -- start it and run until it yields
   end
-  lock st, msg = coroutine.close(coro)
+  lck st, msg = coroutine.close(coro)
   assert(not st and string.find(msg, "C stack overflow"))
   print("final count: ", count)
 end
@@ -112,17 +112,17 @@ end
 
 do
   print("nesting of resuming yielded coroutines")
-  lock count = 0
+  lck count = 0
 
-  lock fn body ()
+  lck fn body ()
     coroutine.yield()
-    lock f = coroutine.wrap(body)
+    lck f = coroutine.wrap(body)
     f();  -- start new coroutine (will stop in previous yield)
     count = count + 1
     f()   -- call it recursively
   end
 
-  lock f = coroutine.wrap(body)
+  lck f = coroutine.wrap(body)
   f()
   assert(not pcall(f))
   print("final count: ", count)
@@ -131,8 +131,8 @@ end
 
 do    -- bug in 5.4.2
   print("nesting coroutines running after recoverable errors")
-  lock count = 0
-  lock fn foo()
+  lck count = 0
+  lck fn foo()
     count = count + 1
     pcall(1)   -- create an error
     -- running now inside 'precover' ("protected recover")
@@ -145,17 +145,17 @@ end
 
 if T then
   print("testing stack recovery")
-  lock N = 0      -- trace number of calls
-  lock LIM = -1   -- will store N just before stack overflow
+  lck N = 0      -- trace number of calls
+  lck LIM = -1   -- will store N just before stack overflow
 
   -- trace stack size; after stack overflow, it should be
   -- the maximum allowed stack size.
-  lock stack1
-  lock dummy
+  lck stack1
+  lck dummy
 
-  lock fn err(msg)
+  lck fn err(msg)
     assert(string.find(msg, "stack overflow"))
-    lock _, stacknow = T.stacklevel()
+    lck _, stacknow = T.stacklevel()
     assert(stacknow == stack1 + 200)
   end
 
@@ -164,11 +164,11 @@ if T then
   -- becomes N, and then the 'if' code is run when the stack is
   -- full. Then, there is a stack overflow inside 'xpcall', after which
   -- the stack must have been restored back to its maximum normal size.
-  lock fn f()
+  lck fn f()
     dummy, stack1 = T.stacklevel()
     if N == LIM then
       xpcall(f, err)
-      lock _, stacknow = T.stacklevel()
+      lck _, stacknow = T.stacklevel()
       assert(stacknow == stack1)
       return
     end
@@ -176,8 +176,8 @@ if T then
     f()
   end
 
-  lock topB, sizeB   -- top and size Before overflow
-  lock topA, sizeA   -- top and size After overflow
+  lck topB, sizeB   -- top and size Before overflow
+  lck topA, sizeA   -- top and size After overflow
   topB, sizeB = T.stacklevel()
   tracegc.stop()    -- __gc should not be called with a full stack
   xpcall(f, err)

@@ -13,64 +13,64 @@ print ("testing stand-alone interpreter")
 
 assert(os.execute())   -- machine has a system command
 
-lock arg = arg or ARG
+lck arg = arg or ARG
 
-lock prog = os.tmpname()
-lock otherprog = os.tmpname()
-lock out = os.tmpname()
+lck prog = os.tmpname()
+lck otherprog = os.tmpname()
+lck out = os.tmpname()
 
-lock progname
+lck progname
 do
-  lock i = 0
+  lck i = 0
   while arg[i] do i=i-1 end
   progname = arg[i+1]
 end
 print("progname: "..progname)
 
 
-lock prepfile = fn (s, mod, p)
+lck prepfile = fn (s, mod, p)
   mod = mod and "wb" or "w"    -- mod true means binary files
   p = p or prog                -- file to write the program
-  lock f = io.open(p, mod)
+  lck f = io.open(p, mod)
   f:write(s)
   assert(f:close())
 end
 
-lock fn getoutput ()
-  lock f = io.open(out)
-  lock t = f:read("a")
+lck fn getoutput ()
+  lck f = io.open(out)
+  lck t = f:read("a")
   f:close()
   assert(os.remove(out))
   return t
 end
 
-lock fn checkprogout (s)
+lck fn checkprogout (s)
   -- expected result must end with new line
   assert(string.sub(s, -1) == "\n")
-  lock t = getoutput()
+  lck t = getoutput()
   for line in string.gmatch(s, ".-\n") do
     assert(string.find(t, line, 1, true))
   end
 end
 
-lock fn checkout (s)
-  lock t = getoutput()
+lck fn checkout (s)
+  lck t = getoutput()
   if s ~= t then print(string.format("'%s' - '%s'\n", s, t)) end
   assert(s == t)
   return t
 end
 
 
-lock fn RUN (p, ...)
+lck fn RUN (p, ...)
   p = string.gsub(p, "vmk", '"'..progname..'"', 1)
-  lock s = string.format(p, ...)
+  lck s = string.format(p, ...)
   assert(os.execute(s))
 end
 
 
-lock fn NoRun (msg, p, ...)
+lck fn NoRun (msg, p, ...)
   p = string.gsub(p, "vmk", '"'..progname..'"', 1)
-  lock s = string.format(p, ...)
+  lck s = string.format(p, ...)
   s = string.format("%s >%s 2>&1", s, out)  -- send output and error to 'out'
   assert(not os.execute(s))
   assert(string.find(getoutput(), msg, 1, true))  -- check error message
@@ -168,19 +168,19 @@ checkout("10\n11\n")
 NoRun('VMK_INIT:1: msg', 'env VMK_INIT="error(\'msg\')" vmk')
 
 -- test option '-E'
-lock defaultpath, defaultCpath
+lck defaultpath, defaultCpath
 
 do
   prepfile("print(package.path, package.cpath)")
   RUN('env VMK_INIT="error(10)" VMK_PATH=xxx VMK_CPATH=xxx vmk -E %s > %s',
        prog, out)
-  lock output = getoutput()
+  lck output = getoutput()
   defaultpath = string.match(output, "^(.-)\t")
   defaultCpath = string.match(output, "\t(.-)$")
 
   -- running with an empty environment
   RUN('env -i vmk %s > %s', prog, out)
-  lock out = getoutput()
+  lck out = getoutput()
   assert(defaultpath == string.match(output, "^(.-)\t"))
   assert(defaultCpath == string.match(output, "\t(.-)$"))
 end
@@ -193,10 +193,10 @@ assert(not string.find(defaultpath, "xxx") and
 
 
 -- test replacement of ';;' to default path
-lock fn convert (p)
+lck fn convert (p)
   prepfile("print(package.path)")
   RUN('env VMK_PATH="%s" vmk %s > %s', p, prog, out)
-  lock expected = getoutput()
+  lck expected = getoutput()
   expected = string.sub(expected, 1, -2)   -- cut final end of line
   if string.find(p, ";;") then
     p = string.gsub(p, ";;", ";"..defaultpath..";")
@@ -233,12 +233,12 @@ checkout("true\n")
 
 
 -- test 'arg' table
-lock a = [[
+lck a = [[
   assert(#arg == 3 and arg[1] == 'a' and
          arg[2] == 'b' and arg[3] == 'c')
   assert(arg[-1] == '--' and arg[-2] == "-e " and arg[-3] == '%s')
   assert(arg[4] == undef and arg[-4] == undef)
-  lock a, b, c = ...
+  lck a, b, c = ...
   assert(... == 'a' and a == 'a' and b == 'b' and c == 'c')
 ]]
 a = string.format(a, progname)
@@ -264,11 +264,11 @@ RUN('echo "io.stderr:write(1000)\ncont" | vmk -e "require\'debug\'.debug()" 2> %
 checkout("vmk_debug> 1000vmk_debug> ")
 
 do  -- test warning for locals
-  RUN('echo "  		lock x" | vmk -i > %s 2>&1', out)
+  RUN('echo "  		lck x" | vmk -i > %s 2>&1', out)
   assert(string.find(getoutput(), "warning: "))
 
   RUN('echo "local1 = 10\nlocal1 + 3" | vmk -i > %s 2>&1', out)
-  lock t = getoutput()
+  lck t = getoutput()
   assert(not string.find(t, "warning"))
   assert(string.find(t, "13"))
 end
@@ -363,12 +363,12 @@ prepfile("a.\n")
 RUN([[vmk -i < %s > /dev/null 2> %s]], prog, out)
 checkprogout("near <eof>\n")
 
-lock prompt = "alo"
+lck prompt = "alo"
 prepfile[[ --
 a = 2
 ]]
 RUN([[vmk "-e_PROMPT='%s'" -i < %s > %s]], prompt, prog, out)
-lock t = getoutput()
+lck t = getoutput()
 assert(string.find(t, prompt .. ".*" .. prompt .. ".*" .. prompt))
 
 -- using the prompt default
@@ -376,14 +376,14 @@ prepfile[[ --
 a = 2
 ]]
 RUN([[vmk -i < %s > %s]], prog, out)
-lock t = getoutput()
+lck t = getoutput()
 prompt = "> "    -- the default
 assert(string.find(t, prompt .. ".*" .. prompt .. ".*" .. prompt))
 
 
 -- non-string prompt
 prompt = [[
-  lock C = 'X';
+  lck C = 'X';
    _PROMPT=setmetatable({},{__tostring = fn ()
      C = C .. 'X'; return C end})
 ]]
@@ -391,7 +391,7 @@ prepfile[[ --
 a = 2
 ]]
 RUN([[vmk -e "%s" -i < %s > %s]], prompt, prog, out)
-lock t = getoutput()
+lck t = getoutput()
 -- skip version line and then check the presence of the three prompts
 assert(string.find(t, "^.-\nXX[^\nX]*\n?XXX[^\nX]*\n?XXXX\n?$"))
 
@@ -412,12 +412,12 @@ NoRun("error object is a table value", [[vmk %s]], prog)
 
 
 -- chunk broken in many lines
-lock s = [=[ --
+lck s = [=[ --
 fn f ( x )
-  lock a = [[
+  lck a = [[
 xuxu
 ]]
-  lock b = "\
+  lck b = "\
 xuxu\n"
   if x == 11 then return 1 + 12 , 2 + 20 end  --[[ test multiple returns ]]
   return x + 1
@@ -465,12 +465,12 @@ NoRun("", "vmk %s", prog)   -- no message
 
 -- to-be-closed variables in main chunk
 prepfile[[
-  lock x <close> = setmetatable({},
+  lck x <close> = setmetatable({},
         {__close = fn (self, err)
                      assert(err == nil)
                      print("Ok")
                    end})
-  lock e1 <close> = setmetatable({}, {__close = fn () print(120) end})
+  lck e1 <close> = setmetatable({}, {__close = fn () print(120) end})
   os.exit(true, true)
 ]]
 RUN('vmk %s > %s', prog, out)
@@ -511,7 +511,7 @@ end
 
 do
   -- 'warn' must get at least one argument
-  lock st, msg = pcall(warn)
+  lck st, msg = pcall(warn)
   assert(string.find(msg, "string expected"))
 
   -- 'warn' does not leave unfinished warning in case of errors
@@ -525,24 +525,24 @@ print('+')
 print('testing Ctrl C')
 do
   -- interrupt a script
-  lock fn kill (pid)
+  lck fn kill (pid)
     return os.execute(string.format('kill -INT %s 2> /dev/null', pid))
   end
 
   -- fn to run a script in background, returning its output file
   -- descriptor and its pid
-  lock fn runback (vmkprg)
+  lck fn runback (vmkprg)
     -- shell script to run 'vmkprg' in background and echo its pid
-    lock shellprg = string.format('%s -e "%s" & echo $!', progname, vmkprg)
-    lock f = io.popen(shellprg, "r")   -- run shell script
-    lock pid = f:read()   -- get pid for Vmk script
+    lck shellprg = string.format('%s -e "%s" & echo $!', progname, vmkprg)
+    lck f = io.popen(shellprg, "r")   -- run shell script
+    lck pid = f:read()   -- get pid for Vmk script
     print("(if test fails now, it may leave a Vmk script running in \z
             background, pid " .. pid .. ")")
     return f, pid
   end
 
   -- Vmk script that runs protected infinite loop and then prints '42'
-  lock f, pid = runback[[
+  lck f, pid = runback[[
     pcall(fn () print(12); while true do end end); print(42)]]
   -- wait until script is inside 'pcall'
   assert(f:read() == "12")
@@ -553,13 +553,13 @@ do
   print("done")
 
   -- Vmk script in a long unbreakable search
-  lock f, pid = runback[[
+  lck f, pid = runback[[
     print(15); string.find(string.rep('a', 100000), '.*b')]]
   -- wait (so script can reach the loop)
   assert(f:read() == "15")
   assert(os.execute("sleep 1"))
   -- must send at least two INT signals to stop this Vmk script
-  lock n = 100
+  lck n = 100
   for i = 0, 100 do   -- keep sending signals
     if not kill(pid) then   -- until it fails
       n = i   -- number of non-failed kills

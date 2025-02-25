@@ -525,7 +525,7 @@ static int read_line (vmk_State *L, FILE *f, int chop) {
   do {  /* may need to read several chunks to get whole line */
     char *buff = vmkL_prepbuffer(&b);  /* preallocate buffer space */
     unsigned i = 0;
-    l_lockfile(f);  /* no memory errors can happen inside the locked */
+    l_lockfile(f);  /* no memory errors can happen inside the lock */
     while (i < VMKL_BUFFERSIZE && (c = l_getc(f)) != EOF && c != '\n')
       buff[i++] = cast_char(c);  /* read up to end of line or buffer limit */
     l_unlockfile(f);

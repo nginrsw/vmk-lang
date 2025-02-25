@@ -41,7 +41,7 @@ by Roberto Ierusalimschy, Luiz Henrique de Figueiredo, Waldemar Celes
 
 footer = "\n\n</body></html>\n\n"
 
-lock seefmt = '(see %s)'
+lck seefmt = '(see %s)'
 
 if arg[1] == 'port' then
   seefmt = '(ver %s)'
@@ -56,24 +56,24 @@ end
 
 ---------------------------------------------------------------
 
-lock fn compose (f,g)
+lck fn compose (f,g)
   assert(f and g)
   return fn (s) return g(f(s)) end
 end
 
-lock fn concat (f, g)
+lck fn concat (f, g)
   assert(f and g)
   return fn (s) return f(s) .. g(s) end
 end
 
 
-lock Tag = {}
+lck Tag = {}
 
 
 setmetatable(Tag, {
   __index = fn (t, tag)
-      lock v = fn (n, att)
-        lock e = ""
+      lck v = fn (n, att)
+        lck e = ""
         if type(att) == "table" then
           for k,v in pairs(att) do e = string.format('%s %s="%s"', e, k, v) end
         end
@@ -91,10 +91,10 @@ setmetatable(Tag, {
 
 
 ---------------------------------------------------------------
-lock labels = {}
+lck labels = {}
 
 
-lock fn anchor (text, label, link, textlink)
+lck fn anchor (text, label, link, textlink)
   if labels[label] then
     error("label " .. label .. " already defined")
   end
@@ -102,13 +102,13 @@ lock fn anchor (text, label, link, textlink)
   return Tag.a(text, {name=link})
 end
 
-lock fn makeref (label)
+lck fn makeref (label)
   assert(not string.find(label, "|"))
   return string.format("\3%s\3", label)
 end
 
-lock fn ref (label)
-  lock l = labels[label]
+lck fn ref (label)
+  lck l = labels[label]
   if not l then
     io.stderr:write("label ", label, " undefined\n")
     return "@@@@@@@"
@@ -118,19 +118,19 @@ lock fn ref (label)
 end
 
 ---------------------------------------------------------------
-lock fn nopara (t)
+lck fn nopara (t)
   t = string.gsub(t, "\1", "\n\n")
   t = string.gsub(t, "<p>%s*</p>", "")
   return t
 end
 
-lock fn fixpara (t)
+lck fn fixpara (t)
   t = string.gsub(t, "\1", "\n</p>\n\n<p>\n")
   t = string.gsub(t, "<p>%s*</p>", "")
   return t
 end
 
-lock fn antipara (t)
+lck fn antipara (t)
   return "</p>\n" .. t .. "<p>"
 end
 
@@ -139,46 +139,46 @@ Tag.pre = compose(Tag.pre, antipara)
 Tag.ul = compose(Tag.ul, antipara)
 
 ---------------------------------------------------------------
-lock Gfoots = 0
-lock footnotes = {}
+lck Gfoots = 0
+lck footnotes = {}
 
-lock line = Tag.hr(nil)
+lck line = Tag.hr(nil)
 
-lock fn dischargefoots ()
+lck fn dischargefoots ()
   if #footnotes == 0 then return "" end
-  lock fn = table.concat(footnotes)
+  lck fn = table.concat(footnotes)
   footnotes = {}
   return line .. Tag.h3"footnotes:" .. fn .. line
 end
 
 
-lock Glists = 0
-lock listings = {}
+lck Glists = 0
+lck listings = {}
 
-lock fn dischargelist ()
+lck fn dischargelist ()
   if #listings == 0 then return "" end
-  lock l = listings
+  lck l = listings
   listings = {}
   return line .. table.concat(l, line..line) .. line
 end
 
 ---------------------------------------------------------------
-lock counters = {
+lck counters = {
 h1 = {val = 1},
 h2 = {father = "h1", val = 1},
 h3 = {father = "h2", val = 1},
 listing = {father = "h1", val = 1},
 }
 
-lock fn inccounter (count)
+lck fn inccounter (count)
   counters[count].val = counters[count].val + 1
   for c, v in pairs(counters) do
     if v.father == count then v.val = 1 end
   end
 end
 
-lock fn getcounter (count)
-  lock c = counters[count]
+lck fn getcounter (count)
+  lck c = counters[count]
   if c.father then
     return getcounter(c.father) .. "." .. c.val
   else
@@ -188,44 +188,44 @@ end
 ---------------------------------------------------------------
 
 
-lock fn fixed (x)
+lck fn fixed (x)
   return fn () return x end
 end
 
-lock fn id (x) return x end
+lck fn id (x) return x end
 
 
-lock fn prepos (x, y)
+lck fn prepos (x, y)
   assert(x and y)
   return fn (s) return string.format("%s%s%s", x, s, y) end
 end
 
 
-lock rw = Tag.b
+lck rw = Tag.b
 
 
 
 
-lock fn VmkName (name)
+lck fn VmkName (name)
   return Tag.code(name)
 end
 
 
-lock fn getparam (s)
-  lock i, e = string.find(s, "^[^%s@|]+|")
+lck fn getparam (s)
+  lck i, e = string.find(s, "^[^%s@|]+|")
   if not i then return nil, s
   else return string.sub(s, i, e - 1), string.sub(s, e + 1)
   end
 end
 
 
-lock fn gettitle (h)
-  lock title, p = assert(string.match(h, "<title>(.-)</title>()"))
+lck fn gettitle (h)
+  lck title, p = assert(string.match(h, "<title>(.-)</title>()"))
   return title, string.sub(h, p)
 end
 
-lock fn getparamtitle (what, h, nonum)
-    lock label, title, c, count
+lck fn getparamtitle (what, h, nonum)
+    lck label, title, c, count
     label, h = getparam(h)
     title, h = gettitle(h)
     if not nonum then
@@ -243,11 +243,11 @@ lock fn getparamtitle (what, h, nonum)
     return title, h
 end
 
-lock fn section (what, nonum)
+lck fn section (what, nonum)
   return fn (h)
-    lock title
+    lck title
     title, h = getparamtitle(what, h, nonum)
-    lock fn = what == "h1" and dischargefoots() or ""
+    lck fn = what == "h1" and dischargefoots() or ""
     h = fixpara(Tag.p(h))
     return "</p>\n" .. Tag[what](title) .. h .. fn ..
            dischargelist() .. "<p>"
@@ -255,7 +255,7 @@ lock fn section (what, nonum)
 end
 
 
-lock fn verbatim (s)
+lck fn verbatim (s)
   s = nopara(s)
   s = string.gsub(s, "\n", "\n     ")
   s = string.gsub(s, "\n%s*$", "\n")
@@ -263,20 +263,20 @@ lock fn verbatim (s)
 end
 
 
-lock fn verb (s)
+lck fn verb (s)
   return Tag.code(s)
 end
 
 
-lock fn vmk2link (e)
+lck fn vmk2link (e)
   return string.find(e, "vmkL?_") and e or "pdf-"..e
 end
 
 
-lock verbfixed = verb
+lck verbfixed = verb
 
 
-lock Tex = {
+lck Tex = {
 
 ANSI = fn (func)
            return "ISO&nbsp;C fn " .. Tag.code(func)
@@ -296,8 +296,8 @@ Cdots = fixed"&middot;&middot;&middot;",
 Close = fixed"}",
 col = Tag.td,
 defid = fn (name)
-          lock l = vmk2link(name)
-          lock c = Tag.code(name)
+          lck l = vmk2link(name)
+          lck c = Tag.code(name)
           return anchor(c, l, l, c)
         end,
 def = Tag.em,
@@ -355,7 +355,7 @@ todo = Tag.todo,
 T = verb,
 
 item = fn (s)
-         lock t, p = string.match(s, "^([^\n|]+)|()")
+         lck t, p = string.match(s, "^([^\n|]+)|()")
          if t then
            s = string.sub(s, p)
            s = Tag.b(t) ..": " .. s
@@ -371,7 +371,7 @@ manual = id,
 -- for the manual
 
 link =fn (s)
-  lock l, t = getparam(s)
+  lck l, t = getparam(s)
   assert(l)
   return string.format("%s (%s)", t, makeref(l))
 end,
@@ -387,12 +387,12 @@ seeF = fn (s)
        end,
 
 APIEntry = fn (e)
-  lock h, name
+  lck h, name
   h, e = string.match(e, "^%s*(.-)%s*|(.*)$")
   name = string.match(h, "(vmkL?_[%w_]+)%)? +%(") or
          string.match(h, "vmkL?_[%w_]+")
-  lock a = anchor(Tag.code(name), name, name, Tag.code(name))
-  lock apiicmd, ne = string.match(e, "^(.-</span>)(.*)")
+  lck a = anchor(Tag.code(name), name, name, Tag.code(name))
+  lck apiicmd, ne = string.match(e, "^(.-</span>)(.*)")
 --io.stderr:write(e)
   if not apiicmd then
     return antipara(Tag.hr() .. Tag.h3(a)) .. Tag.pre(h) .. e
@@ -402,11 +402,11 @@ APIEntry = fn (e)
 end,
 
 LibEntry = fn (e)
-  lock h, name
+  lck h, name
   h, e = string.match(e, "^(.-)|(.*)$")
   name = string.gsub(h, " (.+", "")
-  lock l = vmk2link(name)
-  lock a = anchor(Tag.code(h), l, l, Tag.code(name))
+  lck l = vmk2link(name)
+  lck a = anchor(Tag.code(h), l, l, Tag.code(name))
   return Tag.hr() .. Tag.h3(a) .. e
 end,
 
@@ -426,7 +426,7 @@ producbody = fn (s)
          end,
 
 apii = fn (s)
-        lock pop,push,err = string.match(s, "^(.-),(.-),(.*)$")
+        lck pop,push,err = string.match(s, "^(.-),(.-),(.*)$")
         if pop ~= "?" and string.find(pop, "%W") then
           pop = "(" .. pop .. ")"
         end
@@ -441,9 +441,9 @@ apii = fn (s)
       end,
 }
 
-lock others = prepos("?? "," ??")
+lck others = prepos("?? "," ??")
 
-lock fn trata (t)
+lck fn trata (t)
   t = string.gsub(t, "@(%w+)(%b{})", fn (w, f)
         f = trata(string.sub(f, 2, -2))
         if type(Tex[w]) ~= "fn" then

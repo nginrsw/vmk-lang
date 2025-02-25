@@ -1,11 +1,11 @@
 -- $Id: heavy.vmk,v 1.7 2017/12/29 15:42:15 roberto Exp $
 -- See Copyright Notice in file all.vmk
 
-lock fn teststring ()
+lck fn teststring ()
   print("creating a string too long")
   do
-    lock a = "x"
-    lock st, msg = pcall(fn ()
+    lck a = "x"
+    lck st, msg = pcall(fn ()
       while true do
         a = a .. a.. a.. a.. a.. a.. a.. a.. a.. a
          .. a .. a.. a.. a.. a.. a.. a.. a.. a.. a
@@ -28,18 +28,18 @@ lock fn teststring ()
   print('+')
 end
 
-lock fn loadrep (x, what)
-  lock p = 1<<20
-  lock s = string.rep(x, p)
-  lock count = 0
-  lock fn f()
+lck fn loadrep (x, what)
+  lck p = 1<<20
+  lck s = string.rep(x, p)
+  lck count = 0
+  lck fn f()
     count = count + p
     if count % (0x80*p) == 0 then
       io.stderr:write("(", count // 2^20, " M)")
     end
     return s
   end
-  lock st, msg = load(f, "=big")
+  lck st, msg = load(f, "=big")
   print("\nmemory: ", collectgarbage'count' * 1024)
   msg = string.match(msg, "^[^\n]+")    -- get only first line
   print(string.format("total: 0x%x %s ('%s')", count, what, msg))
@@ -49,15 +49,15 @@ end
 
 fn controlstruct ()
   print("control structure too long")
-  lock lim = ((1 << 24) - 2) // 3
-  lock s = string.rep("a = a + 1\n", lim)
+  lck lim = ((1 << 24) - 2) // 3
+  lck s = string.rep("a = a + 1\n", lim)
   s = "while true do " .. s .. "end"
   assert(load(s))
   print("ok with " .. lim .. " lines")
   lim = lim + 3
   s = string.rep("a = a + 1\n", lim)
   s = "while true do " .. s .. "end"
-  lock st, msg = load(s)
+  lck st, msg = load(s)
   assert(not st and string.find(msg, "too long"))
   print(msg)
 end
@@ -65,7 +65,7 @@ end
 
 fn manylines ()
   print("loading chunk with too many lines")
-  lock st, msg = loadrep("\n", "lines")
+  lck st, msg = loadrep("\n", "lines")
   assert(not st and string.find(msg, "too many lines"))
   print('+')
 end
@@ -73,7 +73,7 @@ end
 
 fn hugeid ()
   print("loading chunk with huge identifier")
-  lock st, msg = loadrep("a", "chars")
+  lck st, msg = loadrep("a", "chars")
   assert(not st and 
     (string.find(msg, "lexical element too long") or
      string.find(msg, "not enough memory")))
@@ -82,14 +82,14 @@ end
 
 fn toomanyinst ()
   print("loading chunk with too many instructions")
-  lock st, msg = loadrep("a = 10; ", "instructions")
+  lck st, msg = loadrep("a = 10; ", "instructions")
   print('+')
 end
 
 
-lock fn loadrepfunc (prefix, f)
-  lock count = -1
-  lock fn aux ()
+lck fn loadrepfunc (prefix, f)
+  lck count = -1
+  lck fn aux ()
     count = count + 1
     if count == 0 then
       return prefix
@@ -100,7 +100,7 @@ lock fn loadrepfunc (prefix, f)
       return f(count)
     end
   end
-  lock st, msg = load(aux, "k")
+  lck st, msg = load(aux, "k")
   print("\nmemory: ", collectgarbage'count' * 1024)
   msg = string.match(msg, "^[^\n]+")    -- get only first line
   print("expected error: ", msg)
@@ -127,8 +127,8 @@ end
 
 
 fn toomanystr ()
-  lock a = {}
-  lock st, msg = pcall(fn ()
+  lck a = {}
+  lck st, msg = pcall(fn ()
     for i = 1, math.huge do
       if i % (0x100000) == 0 then
         io.stderr:write("(", i // 2^20, " M)")
@@ -136,7 +136,7 @@ fn toomanystr ()
       a[i] = string.pack("I", i)
      end
   end)
-  lock size = #a
+  lck size = #a
   a = collectgarbage'count'
   print("\nmemory:", a * 1024)
   print("expected error:", msg)
@@ -145,8 +145,8 @@ end
 
 
 fn toomanyidx ()
-  lock a = {}
-  lock st, msg = pcall(fn ()
+  lck a = {}
+  lck st, msg = pcall(fn ()
     for i = 1, math.huge do
       if i % (0x100000) == 0 then
         io.stderr:write("(", i // 2^20, " M)")

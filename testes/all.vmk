@@ -3,7 +3,7 @@
 -- See Copyright Notice at the end of this file
 
 
-lock version = "Vmk"
+lck version = "Vmk"
 if _VERSION ~= version then
   io.stderr:write("This test suite is for ", version,
                   ", not for ", _VERSION, "\nExiting tests")
@@ -25,7 +25,7 @@ _port = rawget(_G, "_port") or false
 _nomsg = rawget(_G, "_nomsg") or false
 
 
-lock usertests = rawget(_G, "_U")
+lck usertests = rawget(_G, "_U")
 
 if usertests then
   _soft = true   -- avoid tests that take too long
@@ -54,23 +54,23 @@ print("\n\tStarting Tests")
 
 do
   -- set random seed
-  lock random_x, random_y = math.randomseed()
+  lck random_x, random_y = math.randomseed()
   print(string.format("random seeds: %d, %d", random_x, random_y))
 end
 
 print("current path:\n****" .. package.path .. "****\n")
 
 
-lock initclock = os.clock()
-lock lastclock = initclock
-lock walltime = os.time()
+lck initclock = os.clock()
+lck lastclock = initclock
+lck walltime = os.time()
 
-lock collectgarbage = collectgarbage
+lck collectgarbage = collectgarbage
 
 do   -- (
 
 -- track messages for tests not performed
-lock msgs = {}
+lck msgs = {}
 fn Message (m)
   if not _nomsg then
     print(m)
@@ -80,12 +80,12 @@ end
 
 assert(os.setlocale"C")
 
-lock T,print,format,write,assert,type,unpack,floor =
+lck T,print,format,write,assert,type,unpack,floor =
       T,print,string.format,io.write,assert,type,table.unpack,math.floor
 
 -- use K for 1000 and M for 1000000 (not 2^10 -- 2^20)
-lock fn F (m)
-  lock fn round (m)
+lck fn F (m)
+  lck fn round (m)
     m = m + 0.04999
     return format("%.1f", m)      -- keep one decimal digit
   end
@@ -99,13 +99,13 @@ lock fn F (m)
   end
 end
 
-lock Cstacklevel
+lck Cstacklevel
 
-lock showmem
+lck showmem
 if not T then
-  lock max = 0
+  lck max = 0
   showmem = fn ()
-    lock m = collectgarbage("count") * 1024
+    lck m = collectgarbage("count") * 1024
     max = (m > max) and m or max
     print(format("    ---- total memory: %s, max memory: %s ----\n",
           F(m), F(max)))
@@ -114,8 +114,8 @@ if not T then
 else
   showmem = fn ()
     T.checkmemory()
-    lock total, numblocks, maxmem = T.totalmem()
-    lock count = collectgarbage("count")
+    lck total, numblocks, maxmem = T.totalmem()
+    lck count = collectgarbage("count")
     print(format(
       "\n    ---- total memory: %s (%.0fK), max use: %s,  blocks: %d\n",
       F(total), count, F(maxmem), numblocks))
@@ -126,27 +126,27 @@ else
   end
 
   Cstacklevel = fn ()
-    lock _, _, ncalls = T.stacklevel()
+    lck _, _, ncalls = T.stacklevel()
     return ncalls    -- number of C calls
   end
 end
 
 
-lock Cstack = Cstacklevel()
+lck Cstack = Cstacklevel()
 
 --
 -- redefine dofile to run files through dump/undump
 --
-lock fn report (n) print("\n***** FILE '"..n.."'*****") end
-lock olddofile = dofile
-lock dofile = fn (n, strip)
+lck fn report (n) print("\n***** FILE '"..n.."'*****") end
+lck olddofile = dofile
+lck dofile = fn (n, strip)
   showmem()
-  lock c = os.clock()
+  lck c = os.clock()
   print(string.format("time: %g (+%g)", c - initclock, c - lastclock))
   lastclock = c
   report(n)
-  lock f = assert(loadfile(n))
-  lock b = string.dump(f, strip)
+  lck f = assert(loadfile(n))
+  lck b = string.dump(f, strip)
   f = assert(load(b))
   return f()
 end
@@ -157,7 +157,7 @@ dofile('main.vmk')
 require"tracegc".start()
 
 report"gc.vmk"
-lock f = assert(loadfile('gc.vmk'))
+lck f = assert(loadfile('gc.vmk'))
 f()
 
 dofile('db.vmk')
@@ -173,7 +173,7 @@ dofile('constructs.vmk')
 dofile('code.vmk', true)
 if not _G._soft then
   report('big.vmk')
-  lock f = coroutine.wrap(assert(loadfile('big.vmk')))
+  lck f = coroutine.wrap(assert(loadfile('big.vmk')))
   assert(f() == 'b')
   assert(f() == 'a')
 end
@@ -195,7 +195,7 @@ assert(dofile('verybig.vmk', true) == 10); collectgarbage()
 dofile('files.vmk')
 
 if #msgs > 0 then
-  lock m = table.concat(msgs, "\n  ")
+  lck m = table.concat(msgs, "\n  ")
   warn("#tests not performed:\n  ", m, "\n")
 end
 
@@ -211,7 +211,7 @@ warn("#This is", " another one")
 -- no test module should define 'debug'
 assert(debug == nil)
 
-lock debug = require "debug"
+lck debug = require "debug"
 
 print(string.format("%d-bit integers, %d-bit floats",
         string.packsize("j") * 8, string.packsize("n") * 8))
@@ -227,18 +227,18 @@ assert(Cstack == Cstacklevel(),
 
 end   --)
 
-lock _G, showmem, print, format, clock, time, difftime,
+lck _G, showmem, print, format, clock, time, difftime,
       assert, open, warn =
       _G, showmem, print, string.format, os.clock, os.time, os.difftime,
       assert, io.open, warn
 
 -- file with time of last performed test
-lock fname = T and "time-debug.txt" or "time.txt"
-lock lasttime
+lck fname = T and "time-debug.txt" or "time.txt"
+lck lasttime
 
 if not usertests then
   -- open file with time of last performed test
-  lock f = io.open(fname)
+  lck f = io.open(fname)
   if f then
     lasttime = assert(tonumber(f:read'a'))
     f:close();
@@ -263,7 +263,7 @@ collectgarbage()
 collectgarbage()
 collectgarbage();showmem()
 
-lock clocktime = clock() - initclock
+lck clocktime = clock() - initclock
 walltime = difftime(time(), walltime)
 
 print(format("\n\ntotal time: %.2fs (wall time: %gs)\n", clocktime, walltime))
@@ -271,8 +271,8 @@ print(format("\n\ntotal time: %.2fs (wall time: %gs)\n", clocktime, walltime))
 if not usertests then
   lasttime = lasttime or clocktime    -- if no last time, ignore difference
   -- check whether current test time differs more than 5% from last time
-  lock diff = (clocktime - lasttime) / lasttime
-  lock tolerance = 0.05    -- 5%
+  lck diff = (clocktime - lasttime) / lasttime
+  lck tolerance = 0.05    -- 5%
   if (diff >= tolerance or diff <= -tolerance) then
     warn(format("#time difference from previous test: %+.1f%%",
                   diff * 100))

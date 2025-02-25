@@ -1,7 +1,7 @@
 /*
 ** $Id: vmk.h $
 ** VMK - A Vmk Mod Scripting Language
-** bitbucket.org/nginr/vmk-lang, KRS-Bdg, Indonesia
+** github.com/nginrsw/vmk-lang, KRS-Bdg, Indonesia
 ** See Copyright Notice at the end of this file
 */
 
@@ -13,12 +13,12 @@
 #include <stddef.h>
 
 
-#define VMK_COPYRIGHT	VMK_RELEASE "  Copyright (C) 2025 bitbucket.org/nginr/vmk-lang, KRS-Bdg"
+#define VMK_COPYRIGHT	VMK_RELEASE "  Copyright (C) 2025 github.com/nginrsw/vmk-lang, KRS-Bdg"
 #define VMK_AUTHORS	"Gillar Ajie Prasatya"
 
 
 #define VMK_VERSION_MAJOR_N	0
-#define VMK_VERSION_MINOR_N	0
+#define VMK_VERSION_MINOR_N	1
 #define VMK_VERSION_RELEASE_N	1
 
 #define VMK_VERSION_NUM  (VMK_VERSION_MAJOR_N * 100 + VMK_VERSION_MINOR_N)
@@ -494,7 +494,7 @@ VMK_API int (vmk_gethookcount) (vmk_State *L);
 struct vmk_Debug {
   int event;
   const char *name;	/* (n) */
-  const char *namewhat;	/* (n) 'global', 'lock', 'field', 'method' */
+  const char *namewhat;	/* (n) 'global', 'lck', 'field', 'method' */
   const char *what;	/* (S) 'Vmk', 'C', 'main', 'tail' */
   const char *source;	/* (S) */
   size_t srclen;	/* (S) */
@@ -523,12 +523,12 @@ struct vmk_Debug {
 #define VMK_VERSION_MINOR	VMKI_TOSTR(VMK_VERSION_MINOR_N)
 #define VMK_VERSION_RELEASE	VMKI_TOSTR(VMK_VERSION_RELEASE_N)
 
-#define VMK_VERSION	"Vmk " VMK_VERSION_MAJOR "." VMK_VERSION_MINOR
+#define VMK_VERSION	"VMK " VMK_VERSION_MAJOR "." VMK_VERSION_MINOR
 #define VMK_RELEASE	VMK_VERSION "." VMK_VERSION_RELEASE
 
 
 /******************************************************************************
-* Copyright (C) 2025 bitbucket.org/nginr/vmk-lang, KRS-Bdg.
+* Copyright (C) 2025 github.com/nginrsw/vmk-lang, KRS-Bdg.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the

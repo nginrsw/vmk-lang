@@ -14,7 +14,7 @@
 
 #define BUFFER_SIZE 8192
 
-// Change 'lock' to 'local', 'fn' to 'function' and 'str.' to 'string.'
+// Change 'lck' to 'local', 'fn' to 'function' and 'str.' to 'string.'
 void replaceContentInFile(const char *filePath) {
     FILE *file = fopen(filePath, "r");
     if (!file) {
@@ -37,7 +37,7 @@ void replaceContentInFile(const char *filePath) {
         char *src = buffer, *dest = tempBuffer;
 
         while (*src) {
-            if (strncmp(src, "lock", 4) == 0 && !isalnum((unsigned char)src[4])) {
+            if (strncmp(src, "lck", 3) == 0 && !isalnum((unsigned char)src[3])) {
                 strcpy(dest, "local");
                 src += 4;
                 dest += 5;

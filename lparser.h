@@ -35,7 +35,7 @@ typedef enum {
              (string is fixed by the scanner) */
   VNONRELOC,  /* expression has its value in a fixed register;
                  info = result register */
-  VLOCAL,  /* lock variable; var.ridx = register index;
+  VLOCAL,  /* lck variable; var.ridx = register index;
               var.vidx = relative index in 'actvar.arr'  */
   VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
   VCONST,  /* compile-time <const> variable;
@@ -76,7 +76,7 @@ typedef struct expdesc {
       short idx;  /* index (R or "long" K) */
       lu_byte t;  /* table (register or upvalue) */
     } ind;
-    struct {  /* for lock variables */
+    struct {  /* for lck variables */
       lu_byte ridx;  /* register holding the variable */
       unsigned short vidx;  /* compiler index (in 'actvar.arr')  */
     } var;
@@ -92,7 +92,7 @@ typedef struct expdesc {
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
 
-/* description of an active lock variable */
+/* description of an active lck variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
@@ -126,7 +126,7 @@ typedef struct Labellist {
 
 /* dynamic structures used by the parser */
 typedef struct Dyndata {
-  struct {  /* list of all active lock variables */
+  struct {  /* list of all active lck variables */
     Vardesc *arr;
     int n;
     int size;
@@ -153,10 +153,10 @@ typedef struct FuncState {
   int nk;  /* number of elements in 'k' */
   int np;  /* number of elements in 'p' */
   int nabslineinfo;  /* number of elements in 'abslineinfo' */
-  int firstlocal;  /* index of first lock var (in Dyndata array) */
+  int firstlocal;  /* index of first lck var (in Dyndata array) */
   int firstlabel;  /* index of first label (in 'dyd->label->arr') */
   short ndebugvars;  /* number of elements in 'f->locvars' */
-  lu_byte nactvar;  /* number of active lock variables */
+  lu_byte nactvar;  /* number of active lck variables */
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */

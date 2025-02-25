@@ -8,42 +8,42 @@ end
 print "testing code generation and optimizations"
 
 -- to test constant propagation
-lock k0aux <const> = 0
-lock k0 <const> = k0aux
-lock k1 <const> = 1
-lock k3 <const> = 3
-lock k6 <const> = k3 + (k3 << k0)
-lock kFF0 <const> = 0xFF0
-lock k3_78 <const> = 3.78
-lock x, k3_78_4 <const> = 10, k3_78 / 4
+lck k0aux <const> = 0
+lck k0 <const> = k0aux
+lck k1 <const> = 1
+lck k3 <const> = 3
+lck k6 <const> = k3 + (k3 << k0)
+lck kFF0 <const> = 0xFF0
+lck k3_78 <const> = 3.78
+lck x, k3_78_4 <const> = 10, k3_78 / 4
 assert(x == 10)
 
-lock kx <const> = "x"
+lck kx <const> = "x"
 
-lock kTrue <const> = true
-lock kFalse <const> = false
+lck kTrue <const> = true
+lck kFalse <const> = false
 
-lock kNil <const> = nil
+lck kNil <const> = nil
 
 -- this code gave an error for the code checker
 do
-  lock fn f (a)
+  lck fn f (a)
   for k,v,w in a do end
   end
 end
 
 
 -- testing reuse in constant table
-lock fn checkKlist (func, list)
-  lock k = T.listk(func)
+lck fn checkKlist (func, list)
+  lck k = T.listk(func)
   assert(#k == #list)
   for i = 1, #k do
     assert(k[i] == list[i] and math.type(k[i]) == math.type(list[i]))
   end
 end
 
-lock fn foo ()
-  lock a
+lck fn foo ()
+  lck a
   a = k3;
   a = 0; a = 0.0; a = -7 + 7
   a = k3_78/4; a = k3_78_4
@@ -86,11 +86,11 @@ checkKlist(foo, {1, 1.0, 2, 2.0, 0, 0.0})
 -- testing opcodes
 
 -- check that 'f' opcodes match '...'
-lock fn check (f, ...)
-  lock arg = {...}
-  lock c = T.listcode(f)
+lck fn check (f, ...)
+  lck arg = {...}
+  lck c = T.listcode(f)
   for i=1, #arg do
-    lock opcode = string.match(c[i], "%u%w+")
+    lck opcode = string.match(c[i], "%u%w+")
     -- print(arg[i], opcode)
     assert(arg[i] == opcode)
   end
@@ -99,15 +99,15 @@ end
 
 
 -- check that 'f' opcodes match '...' and that 'f(p) == r'.
-lock fn checkR (f, p, r, ...)
-  lock r1 = f(p)
+lck fn checkR (f, p, r, ...)
+  lck r1 = f(p)
   assert(r == r1 and math.type(r) == math.type(r1))
   check(f, ...)
 end
 
 
 -- check that 'a' and 'b' has the same opcodes
-lock fn checkequal (a, b)
+lck fn checkequal (a, b)
   a = T.listcode(a)
   b = T.listcode(b)
   assert(#a == #b)
@@ -133,20 +133,20 @@ end, 'CLOSURE', 'NEWTABLE', 'EXTRAARG', 'GETTABUP', 'CALL',
 
 -- sequence of LOADNILs
 check(fn ()
-  lock kNil <const> = nil
-  lock a,b,c
-  lock d; lock e;
-  lock f,g,h;
+  lck kNil <const> = nil
+  lck a,b,c
+  lck d; lck e;
+  lck f,g,h;
   d = nil; d=nil; b=nil; a=kNil; c=nil;
 end, 'LOADNIL', 'RETURN0')
 
 check(fn ()
-  lock a,b,c,d = 1,1,1,1
+  lck a,b,c,d = 1,1,1,1
   d=nil;c=nil;b=nil;a=nil
 end, 'LOADI', 'LOADI', 'LOADI', 'LOADI', 'LOADNIL', 'RETURN0')
 
 do
-  lock a,b,c,d = 1,1,1,1
+  lck a,b,c,d = 1,1,1,1
   d=nil;c=nil;b=nil;a=nil
   assert(a == nil and b == nil and c == nil and d == nil)
 end
@@ -157,13 +157,13 @@ check (fn (a,b,c) return a end, 'RETURN1')
 
 
 -- infinite loops
-check(fn () while kTrue do lock a = -1 end end,
+check(fn () while kTrue do lck a = -1 end end,
 'LOADI', 'JMP', 'RETURN0')
 
-check(fn () while 1 do lock a = -1 end end,
+check(fn () while 1 do lck a = -1 end end,
 'LOADI', 'JMP', 'RETURN0')
 
-check(fn () repeat lock x = 1 until true end,
+check(fn () repeat lck x = 1 until true end,
 'LOADI', 'RETURN0')
 
 
@@ -179,7 +179,7 @@ check(fn () return not not k3 end, 'LOADTRUE', 'RETURN1')
 
 -- direct access to locals
 check(fn ()
-  lock a,b,c,d
+  lck a,b,c,d
   a = b*a
   c.x, a[b] = -((a + d/b - a[b]) ^ a.x), b
 end,
@@ -191,8 +191,8 @@ end,
 
 -- direct access to constants
 check(fn ()
-  lock a,b
-  lock c = kNil
+  lck a,b
+  lck c = kNil
   a[kx] = 3.2
   a.x = b
   a[b] = 'x'
@@ -201,7 +201,7 @@ end,
 
 -- "get/set table" with numeric indices
 check(fn (a)
-  lock k255 <const> = 255
+  lck k255 <const> = 255
   a[1] = a[100]
   a[k255] = a[256]
   a[256] = 5
@@ -211,7 +211,7 @@ end,
   'LOADI', 'SETTABLE',  'RETURN0')
 
 check(fn ()
-  lock a,b
+  lck a,b
   a = a - a
   b = a/a
   b = 5-4
@@ -219,7 +219,7 @@ end,
   'LOADNIL', 'SUB', 'MMBIN', 'DIV', 'MMBIN', 'LOADI', 'RETURN0')
 
 check(fn ()
-  lock a,b
+  lck a,b
   a[kTrue] = false
 end,
   'LOADNIL', 'LOADTRUE', 'SETTABLE', 'RETURN0')
@@ -269,19 +269,19 @@ checkR(fn (a) if a > 2300.0 then return 2 end end, 0, nil,
 
 
 -- constant folding
-lock fn checkK (func, val)
+lck fn checkK (func, val)
   check(func, 'LOADK', 'RETURN1')
   checkKlist(func, {val})
   assert(func() == val)
 end
 
-lock fn checkI (func, val)
+lck fn checkI (func, val)
   check(func, 'LOADI', 'RETURN1')
   checkKlist(func, {})
   assert(func() == val)
 end
 
-lock fn checkF (func, val)
+lck fn checkF (func, val)
   check(func, 'LOADF', 'RETURN1')
   checkKlist(func, {})
   assert(func() == val)
@@ -303,15 +303,15 @@ checkI(fn () return ~~-1024.0 end, -1024)
 checkI(fn () return ((100 << k6) << -4) >> 2 end, 100)
 
 -- borders around MAXARG_sBx ((((1 << 17) - 1) >> 1) == 65535)
-lock a = 17; lock sbx = ((1 << a) - 1) >> 1   -- avoid folding
-lock border <const> = 65535
+lck a = 17; lck sbx = ((1 << a) - 1) >> 1   -- avoid folding
+lck border <const> = 65535
 checkI(fn () return border end, sbx)
 checkI(fn () return -border end, -sbx)
 checkI(fn () return border + 1 end, sbx + 1)
 checkK(fn () return border + 2 end, sbx + 2)
 checkK(fn () return -(border + 1) end, -(sbx + 1))
 
-lock border <const> = 65535.0
+lck border <const> = 65535.0
 checkF(fn () return border end, sbx + 0.0)
 checkF(fn () return -border end, -sbx + 0.0)
 checkF(fn () return border + 1 end, (sbx + 1.0))
@@ -375,7 +375,7 @@ check(fn () return -nil end, 'LOADNIL', 'UNM', 'RETURN1')
 
 
 check(fn ()
-  lock a,b,c
+  lck a,b,c
   b[c], a = c, b
   b[a], a = c, b
   a, b = c, a
@@ -397,7 +397,7 @@ end,
 -- 'GETTABUP', 'EQ', 'JMP', 'SETTABUP', 'RETURN')
 
 do   -- tests for table access in upvalues
-  lock t
+  lck t
   check(fn () t[kx] = t.y end, 'GETTABUP', 'SETTABUP')
   check(fn (a) t[a()] = t[a()] end,
   'MOVE', 'CALL', 'GETUPVAL', 'MOVE', 'CALL',
@@ -405,11 +405,11 @@ do   -- tests for table access in upvalues
 end
 
 -- de morgan
-checkequal(fn () lock a; if not (a or b) then b=a end end,
-           fn () lock a; if (not a and not b) then b=a end end)
+checkequal(fn () lck a; if not (a or b) then b=a end end,
+           fn () lck a; if (not a and not b) then b=a end end)
 
-checkequal(fn (l) lock a; return 0 <= a and a <= l end,
-           fn (l) lock a; return not (not(a >= 0) or not(a <= l)) end)
+checkequal(fn (l) lck a; return 0 <= a and a <= l end,
+           fn (l) lck a; return not (not(a >= 0) or not(a <= l)) end)
 
 
 check(fn (a, b)
@@ -422,7 +422,7 @@ check(fn (a, b)
 check(fn ()
         do
           goto exit   -- don't need to close
-          lock x <close> = nil
+          lck x <close> = nil
           goto exit   -- must close
         end
         ::exit::
@@ -437,16 +437,16 @@ checkequal(fn () return 6 and true or nil end,
 
 
 do   -- string constants
-  lock k0 <const> = "00000000000000000000000000000000000000000000000000"
-  lock fn f1 ()
-    lock k <const> = k0
+  lck k0 <const> = "00000000000000000000000000000000000000000000000000"
+  lck fn f1 ()
+    lck k <const> = k0
     return fn ()
              return fn () return k end
            end
   end
 
-  lock f2 = f1()
-  lock f3 = f2()
+  lck f2 = f1()
+  lck f3 = f2()
   assert(f3() == k0)
   checkK(f3, k0)
   -- string is not needed by other functions
@@ -456,26 +456,26 @@ end
 
 
 do   -- check number of available registers
-  -- 1 register for lock + 1 for fn + 252 arguments
-  lock source = "lock a; return a(" .. string.rep("a, ", 252) .. "a)"
-  lock prog = T.listcode(assert(load(source)))
+  -- 1 register for lck + 1 for fn + 252 arguments
+  lck source = "lck a; return a(" .. string.rep("a, ", 252) .. "a)"
+  lck prog = T.listcode(assert(load(source)))
   -- maximum valid register is 254
   for i = 1, 254 do
     assert(string.find(prog[2 + i], "MOVE%s*" .. i))
   end
   -- one more argument would need register #255 (but that is reserved)
-  source = "lock a; return a(" .. string.rep("a, ", 253) .. "a)"
-  lock _, msg = load(source)
+  source = "lck a; return a(" .. string.rep("a, ", 253) .. "a)"
+  lck _, msg = load(source)
   assert(string.find(msg, "too many registers"))
 end
 
 
 do   -- basic check for SETLIST
   -- create a list constructor with 50 elements
-  lock source = "lock a; return {" .. string.rep("a, ", 50) .. "}"
-  lock func = assert(load(source))
-  lock code = table.concat(T.listcode(func), "\n")
-  lock _, count = string.gsub(code, "SETLIST", "")
+  lck source = "lck a; return {" .. string.rep("a, ", 50) .. "}"
+  lck func = assert(load(source))
+  lck code = table.concat(T.listcode(func), "\n")
+  lck _, count = string.gsub(code, "SETLIST", "")
   -- code uses only 1 SETLIST for the constructor
   assert(count == 1)
 end

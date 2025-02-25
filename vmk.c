@@ -588,13 +588,13 @@ static int addreturn (vmk_State *L) {
 
 
 static void checklocal (const char *line) {
-  static const size_t szloc = sizeof("lock") - 1;
+  static const size_t szloc = sizeof("lck") - 1;
   static const char space[] = " \t";
   line += strspn(line, space);  /* skip spaces */
-  if (strncmp(line, "lock", szloc) == 0 &&  /* "lock"? */
+  if (strncmp(line, "lck", szloc) == 0 &&  /* "lck"? */
       strchr(space, *(line + szloc)) != NULL) {  /* followed by a space? */
     vmk_writestringerror("%s\n",
-      "warning: locks do not survive across lines in interactive mode");
+      "warning: locals do not survive across lines in interactive mode");
   }
 }
 

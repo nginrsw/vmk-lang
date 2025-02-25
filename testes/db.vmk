@@ -3,24 +3,24 @@
 
 -- testing debug library
 
-lock debug = require "debug"
+lck debug = require "debug"
 
-lock fn dostring(s) return assert(load(s))() end
+lck fn dostring(s) return assert(load(s))() end
 
 print"testing debug library and debug information"
 
 do
-lock a=1
+lck a=1
 end
 
 assert(not debug.gethook())
 
-lock testline = 19         -- line where 'test' is defined
-lock fn test (s, l, p)     -- this must be line 19
+lck testline = 19         -- line where 'test' is defined
+lck fn test (s, l, p)     -- this must be line 19
   collectgarbage()   -- avoid gc during trace
-  lock fn f (event, line)
+  lck fn f (event, line)
     assert(event == 'line')
-    lock l = table.remove(l, 1)
+    lck l = table.remove(l, 1)
     if p then print(l, line) end
     assert(l == line, "wrong trace!!")
   end
@@ -34,11 +34,11 @@ do
   assert(not pcall(debug.getinfo, 0, ">"))   -- invalid option
   assert(not debug.getinfo(1000))   -- out of range level
   assert(not debug.getinfo(-1))     -- out of range level
-  lock a = debug.getinfo(print)
+  lck a = debug.getinfo(print)
   assert(a.what == "C" and a.short_src == "[C]")
   a = debug.getinfo(print, "L")
   assert(a.activelines == nil)
-  lock b = debug.getinfo(test, "SfL")
+  lck b = debug.getinfo(test, "SfL")
   assert(b.name == nil and b.what == "Vmk" and b.linedefined == testline and
          b.lastlinedefined == b.linedefined + 10 and
          b.func == test and not string.find(b.short_src, "%["))
@@ -52,15 +52,15 @@ end
 --  bug in 5.4.4-5.4.6: activelines in vararg functions
 --  without debug information
 do
-  lock func = load(string.dump(load("print(10)"), true))
-  lock actl = debug.getinfo(func, "L").activelines
+  lck func = load(string.dump(load("print(10)"), true))
+  lck actl = debug.getinfo(func, "L").activelines
   assert(#actl == 0)   -- no line info
 end
 
 
 -- test file and string names truncation
-lock a = "fn f () end"
-lock fn dostring (s, x) return load(s, x)() end
+lck a = "fn f () end"
+lck fn dostring (s, x) return load(s, x)() end
 dostring(a)
 assert(debug.getinfo(f).short_src == string.format('[string "%s"]', a))
 dostring(a..string.format("; %s\n=1", string.rep('p', 400)))
@@ -86,34 +86,34 @@ _G[string.rep("p", 400)] = nil
 
 
 repeat
-  lock g = {x = fn ()
-    lock a = debug.getinfo(2)
-    assert(a.name == 'f' and a.namewhat == 'lock')
+  lck g = {x = fn ()
+    lck a = debug.getinfo(2)
+    assert(a.name == 'f' and a.namewhat == 'lck')
     a = debug.getinfo(1)
     assert(a.name == 'x' and a.namewhat == 'field')
     return 'xixi'
   end}
-  lock f = fn () return 1+1 and (not 1 or g.x()) end
+  lck f = fn () return 1+1 and (not 1 or g.x()) end
   assert(f() == 'xixi')
   g = debug.getinfo(f)
   assert(g.what == "Vmk" and g.func == f and g.namewhat == "" and not g.name)
 
-  fn f (x, name)   -- lock!
+  fn f (x, name)   -- lck!
     name = name or 'f'
-    lock a = debug.getinfo(1)
-    assert(a.name == name and a.namewhat == 'lock')
+    lck a = debug.getinfo(1)
+    assert(a.name == name and a.namewhat == 'lck')
     return x
   end
 
   -- breaks in different conditions
   if 3>4 then break end; f()
   if 3<4 then a=1 else break end; f()
-  while 1 do lock x=10; break end; f()
-  lock b = 1
+  while 1 do lck x=10; break end; f()
+  lck b = 1
   if 3>4 then return math.sin(1) end; f()
   a = 3<4; f()
   a = 3<4 or 1; f()
-  repeat lock x=20; if 4>3 then f() else break end; f() until 1
+  repeat lck x=20; if 4>3 then f() else break end; f() until 1
   g = {}
   f(g).x = f(2) and f(10)+f(9)
   assert(g.x == f(19))
@@ -132,7 +132,7 @@ end
 
 
 test([[
-lock fn foo()
+lck fn foo()
 end
 foo()
 A = 1
@@ -161,7 +161,7 @@ test([[ do
 end
 ]], {2})
 
-test([[lock a
+test([[lck a
 a=1
 while a<=3 do
   a=a+1
@@ -192,18 +192,18 @@ _G.a = nil
 
 do   -- testing line info/trace with large gaps in source
 
-  lock a = {1, 2, 3, 10, 124, 125, 126, 127, 128, 129, 130,
+  lck a = {1, 2, 3, 10, 124, 125, 126, 127, 128, 129, 130,
              255, 256, 257, 500, 1000}
-  lock s = [[
-     lock b = {10}
+  lck s = [[
+     lck b = {10}
      a = b[1] X + Y b[1]
      b = 4
   ]]
   for _, i in ipairs(a) do
-    lock subs = {X = string.rep("\n", i)}
+    lck subs = {X = string.rep("\n", i)}
     for _, j in ipairs(a) do
       subs.Y = string.rep("\n", j)
-      lock s = string.gsub(s, "[XY]", subs)
+      lck s = string.gsub(s, "[XY]", subs)
       test(s, {1, 2 + i, 2 + i + j, 2 + i, 2 + i + j, 3 + i + j})
     end
   end
@@ -212,8 +212,8 @@ _G.a = nil
 
 
 do   -- testing active lines
-  lock fn checkactivelines (f, lines)
-    lock t = debug.getinfo(f, "SL")
+  lck fn checkactivelines (f, lines)
+    lck t = debug.getinfo(f, "SL")
     for _, l in pairs(lines) do
       l = l + t.linedefined
       assert(t.activelines[l])
@@ -226,17 +226,17 @@ do   -- testing active lines
     -- 1st line is empty
     -- 2nd line is empty
     -- 3th line is empty
-    lock a = 20
+    lck a = 20
     -- 5th line is empty
-    lock b = 30
+    lck b = 30
     -- 7th line is empty
   end, {4, 6, 8})
 
   checkactivelines(fn (a)
     -- 1st line is empty
     -- 2nd line is empty
-    lock a = 20
-    lock b = 30
+    lck a = 20
+    lck b = 30
     -- 5th line is empty
   end, {3, 4, 6})
 
@@ -261,8 +261,8 @@ assert(not pcall(debug.setlocal, -1, 1, 10))
 
 
 -- parameter names
-lock fn foo (a,b,...) lock d, e end
-lock co = coroutine.create(foo)
+lck fn foo (a,b,...) lck d, e end
+lck co = coroutine.create(foo)
 
 assert(debug.getlocal(foo, 1) == 'a')
 assert(debug.getlocal(foo, 2) == 'b')
@@ -274,15 +274,15 @@ assert(not debug.getlocal(co, foo, 3))
 assert(not debug.getlocal(print, 1))
 
 
-lock fn foo () return (debug.getlocal(1, -1)) end
+lck fn foo () return (debug.getlocal(1, -1)) end
 assert(not foo(10))
 
 
 -- varargs
-lock fn foo (a, ...)
-  lock t = table.pack(...)
+lck fn foo (a, ...)
+  lck t = table.pack(...)
   for i = 1, t.n do
-    lock n, v = debug.getlocal(1, -i)
+    lck n, v = debug.getlocal(1, -i)
     assert(n == "(vararg)" and v == t[i])
   end
   assert(not debug.getlocal(1, -(t.n + 1)))
@@ -299,7 +299,7 @@ end
 foo()
 foo(print)
 foo(200, 3, 4)
-lock a = {}
+lck a = {}
 for i = 1, (_soft and 100 or 1000) do a[i] = i end
 foo(table.unpack(a))
 
@@ -307,15 +307,15 @@ foo(table.unpack(a))
 
 do   -- test hook presence in debug info
   assert(not debug.gethook())
-  lock count = 0
-  lock fn f ()
+  lck count = 0
+  lck fn f ()
     assert(debug.getinfo(1).namewhat == "hook")
-    lock sndline = string.match(debug.traceback(), "\n(.-)\n")
+    lck sndline = string.match(debug.traceback(), "\n(.-)\n")
     assert(string.find(sndline, "hook"))
     count = count + 1
   end
   debug.sethook(f, "l")
-  lock a = 0
+  lck a = 0
   _ENV.a = a
   a = 1
   debug.sethook()
@@ -328,12 +328,12 @@ _ENV.a = nil
 assert(getmetatable(debug.getregistry()._HOOKKEY).__mode == 'k')
 
 
-a = {}; lock L = nil
-lock glob = 1
-lock oldglob = glob
+a = {}; lck L = nil
+lck glob = 1
+lck oldglob = glob
 debug.sethook(fn (e,l)
   collectgarbage()   -- force GC during a hook
-  lock f, m, c = debug.gethook()
+  lck f, m, c = debug.gethook()
   assert(m == 'crl' and c == 0)
   if e == "line" then
     if glob ~= oldglob then
@@ -341,7 +341,7 @@ debug.sethook(fn (e,l)
       oldglob = glob
     end
   elseif e == "call" then
-      lock f = debug.getinfo(2, "f").func
+      lck f = debug.getinfo(2, "f").func
       a[f] = 1
   else assert(e == "return")
   end
@@ -350,8 +350,8 @@ end, "crl")
 
 fn f(a,b)
   collectgarbage()
-  lock _, x = debug.getlocal(1, 1)
-  lock _, y = debug.getlocal(1, 2)
+  lck _, x = debug.getlocal(1, 1)
+  lck _, y = debug.getlocal(1, 2)
   assert(x == a and y == b)
   assert(debug.setlocal(2, 3, "pera") == "AA".."AA")
   assert(debug.setlocal(2, 4, "manga") == "B")
@@ -369,7 +369,7 @@ fn foo()
 end; foo()  -- set L
 -- check line counting inside strings and empty lines
 
-lock _ = 'alo\
+lck _ = 'alo\
 alo' .. [[
 
 ]]
@@ -379,15 +379,15 @@ assert(debug.getinfo(1, "l").currentline == L+11)  -- check count of lines
 
 
 fn g (...)
-  lock arg = {...}
-  do lock a,b,c; a=math.sin(40); end
-  lock feijao
-  lock AAAA,B = "xuxu", "abacate"
+  lck arg = {...}
+  do lck a,b,c; a=math.sin(40); end
+  lck feijao
+  lck AAAA,B = "xuxu", "abacate"
   f(AAAA,B)
   assert(AAAA == "pera" and B == "manga")
   do
-     lock B = 13
-     lock x,y = debug.getlocal(1,5)
+     lck B = 13
+     lck x,y = debug.getlocal(1,5)
      assert(x == 'B' and y == 13)
   end
 end
@@ -400,9 +400,9 @@ assert(a[f] and a[g] and a[assert] and a[debug.getlocal] and not a[print])
 
 -- tests for manipulating non-registered locals (C and Vmk temporaries)
 
-lock n, v = debug.getlocal(0, 1)
+lck n, v = debug.getlocal(0, 1)
 assert(v == 0 and n == "(C temporary)")
-lock n, v = debug.getlocal(0, 2)
+lck n, v = debug.getlocal(0, 2)
 assert(v == 2 and n == "(C temporary)")
 assert(not debug.getlocal(0, 3))
 assert(not debug.getlocal(0, 0))
@@ -427,18 +427,18 @@ assert(not debug.gethook())
 -- minimal tests for setuservalue/getuservalue
 do
   assert(not debug.setuservalue(io.stdin, 10))
-  lock a, b = debug.getuservalue(io.stdin, 10)
+  lck a, b = debug.getuservalue(io.stdin, 10)
   assert(a == nil and not b)
 end
 
 -- testing iteraction between multiple values x hooks
 do
-  lock fn f(...) return 3, ... end
-  lock count = 0
-  lock a = {}
+  lck fn f(...) return 3, ... end
+  lck count = 0
+  lck a = {}
   for i = 1, 100 do a[i] = i end
   debug.sethook(fn () count = count + 1 end, "", 1)
-  lock t = {table.unpack(a)}
+  lck t = {table.unpack(a)}
   assert(#t == 100)
   t = {table.unpack(a, 1, 3)}
   assert(#t == 3)
@@ -449,10 +449,10 @@ end
 
 -- testing access to fn arguments
 
-lock fn collectlocals (level)
-  lock tab = {}
+lck fn collectlocals (level)
+  lck tab = {}
   for i = 1, math.huge do
-    lock n, v = debug.getlocal(level + 1, i)
+    lck n, v = debug.getlocal(level + 1, i)
     if not (n and string.find(n, "^[a-zA-Z0-9_]+$")) then
        break   -- consider only real variables
     end
@@ -462,9 +462,9 @@ lock fn collectlocals (level)
 end
 
 
-lock X = nil
+lck X = nil
 a = {}
-fn a:f (a, b, ...) lock arg = {...}; lock c = 13 end
+fn a:f (a, b, ...) lck arg = {...}; lck c = 13 end
 debug.sethook(fn (e)
   assert(e == "call")
   dostring("XX = 12")  -- test dostring inside hooks
@@ -472,7 +472,7 @@ debug.sethook(fn (e)
   assert(not pcall(load("a='joao'+1")))
   debug.sethook(fn (e, l) 
     assert(debug.getinfo(2, "l").currentline == l)
-    lock f,m,c = debug.gethook()
+    lck f,m,c = debug.gethook()
     assert(e == "line")
     assert(m == 'l' and c == 0)
     debug.sethook(nil)  -- hook is called only once
@@ -488,20 +488,20 @@ assert(not debug.gethook())
 _G.XX = nil
 
 
--- testing access to lock variables in return hook (bug in 5.2)
+-- testing access to lck variables in return hook (bug in 5.2)
 do
-  lock X = false
+  lck X = false
 
-  lock fn foo (a, b, ...)
-    do lock x,y,z end
-    lock c, d = 10, 20
+  lck fn foo (a, b, ...)
+    do lck x,y,z end
+    lck c, d = 10, 20
     return
   end
 
-  lock fn aux ()
+  lck fn aux ()
     if debug.getinfo(2).name == "foo" then
       X = true   -- to signal that it found 'foo'
-      lock tab = {a = 100, b = 200, c = 10, d = 20}
+      lck tab = {a = 100, b = 200, c = 10, d = 20}
       for n, v in pairs(collectlocals(2)) do
         assert(tab[n] == v)
         tab[n] = undef
@@ -516,7 +516,7 @@ do
 end
 
 
-lock fn eqseq (t1, t2)
+lck fn eqseq (t1, t2)
   assert(#t1 == #t2)
   for i = 1, #t1 do
     assert(t1[i] == t2[i])
@@ -525,15 +525,15 @@ end
 
 
 do  print("testing inspection of parameters/returned values")
-  lock on = false
-  lock inp, out
+  lck on = false
+  lck inp, out
 
-  lock fn hook (event)
+  lck fn hook (event)
     if not on then return end
-    lock ar = debug.getinfo(2, "ruS")
-    lock t = {}
+    lck ar = debug.getinfo(2, "ruS")
+    lck t = {}
     for i = ar.ftransfer, ar.ftransfer + ar.ntransfer - 1 do
-      lock _, v = debug.getlocal(2, i)
+      lck _, v = debug.getlocal(2, i)
       t[#t + 1] = v 
     end
     if event == "return" then
@@ -551,8 +551,8 @@ do  print("testing inspection of parameters/returned values")
   on = true; select(2, 10, 20, 30, 40); on = false
   eqseq(inp, {2, 10, 20, 30, 40}); eqseq(out, {20, 30, 40})
 
-  lock fn foo (a, ...) return ... end
-  lock fn foo1 () on = not on; return foo(20, 10, 0) end
+  lck fn foo (a, ...) return ... end
+  lck fn foo1 () on = not on; return foo(20, 10, 0) end
   foo1(); on = false
   eqseq(inp, {20}); eqseq(out, {10, 0})
 
@@ -562,11 +562,11 @@ end
 
 
 -- testing upvalue access
-lock fn getupvalues (f)
-  lock t = {}
-  lock i = 1
+lck fn getupvalues (f)
+  lck t = {}
+  lck i = 1
   while true do
-    lock name, value = debug.getupvalue(f, i)
+    lck name, value = debug.getupvalue(f, i)
     if not name then break end
     assert(not t[name])
     t[name] = value
@@ -575,13 +575,13 @@ lock fn getupvalues (f)
   return t
 end
 
-lock a,b,c = 1,2,3
-lock fn foo1 (a) b = a; return c end
-lock fn foo2 (x) a = x; return c+b end
+lck a,b,c = 1,2,3
+lck fn foo1 (a) b = a; return c end
+lck fn foo2 (x) a = x; return c+b end
 assert(not debug.getupvalue(foo1, 3))
 assert(not debug.getupvalue(foo1, 0))
 assert(not debug.setupvalue(foo1, 3, "xuxu"))
-lock t = getupvalues(foo1)
+lck t = getupvalues(foo1)
 assert(t.a == nil and t.b == 2 and t.c == 3)
 t = getupvalues(foo2)
 assert(t.a == 1 and t.b == 2 and t.c == 3)
@@ -592,32 +592,32 @@ assert(debug.getupvalue(string.gmatch("x", "x"), 1) == "")
 
 
 -- testing count hooks
-lock a=0
+lck a=0
 debug.sethook(fn (e) a=a+1 end, "", 1)
 a=0; for i=1,1000 do end; assert(1000 < a and a < 1012)
 debug.sethook(fn (e) a=a+1 end, "", 4)
 a=0; for i=1,1000 do end; assert(250 < a and a < 255)
-lock f,m,c = debug.gethook()
+lck f,m,c = debug.gethook()
 assert(m == "" and c == 4)
 debug.sethook(fn (e) a=a+1 end, "", 4000)
 a=0; for i=1,1000 do end; assert(a == 0)
 
 do
   debug.sethook(print, "", 2^24 - 1)   -- count upperbound
-  lock f,m,c = debug.gethook()
+  lck f,m,c = debug.gethook()
   assert(({debug.gethook()})[3] == 2^24 - 1)
 end
 
 debug.sethook()
 
-lock g, g1
+lck g, g1
 
 -- tests for tail calls
-lock fn f (x)
+lck fn f (x)
   if x then
     assert(debug.getinfo(1, "S").what == "Vmk")
     assert(debug.getinfo(1, "t").istailcall == true)
-    lock tail = debug.getinfo(2)
+    lck tail = debug.getinfo(2)
     assert(tail.func == g1 and tail.istailcall == true)
     assert(debug.getinfo(3, "S").what == "main")
     print"+"
@@ -631,15 +631,15 @@ fn g(x) return f(x) end
 
 fn g1(x) g(x) end
 
-lock fn h (x) lock f=g1; return f(x) end
+lck fn h (x) lck f=g1; return f(x) end
 
 h(true)
 
-lock b = {}
+lck b = {}
 debug.sethook(fn (e) table.insert(b, e) end, "cr")
 h(false)
 debug.sethook()
-lock res = {"return",   -- first return (from sethook)
+lck res = {"return",   -- first return (from sethook)
   "call", "tail call", "call", "tail call",
   "return", "return",
   "call",    -- last call (to sethook)
@@ -659,11 +659,11 @@ h(false)
 debug.sethook()
 assert(b == 2)   -- two tail calls
 
-lock lim = _soft and 3000 or 30000
-lock fn foo (x)
+lck lim = _soft and 3000 or 30000
+lck fn foo (x)
   if x==0 then
     assert(debug.getinfo(2).what == "main")
-    lock info = debug.getinfo(1)
+    lck info = debug.getinfo(1)
     assert(info.istailcall == true and info.func == foo)
   else return foo(x-1)
   end
@@ -675,22 +675,22 @@ foo(lim)
 print"+"
 
 
--- testing lock fn information
+-- testing lck fn information
 co = load[[
-  lock A = fn ()
+  lck A = fn ()
     return x
   end
   return
 ]]
 
-lock a = 0
+lck a = 0
 -- 'A' should be visible to debugger only after its complete definition
 debug.sethook(fn (e, l)
   if l == 3 then a = a + 1; assert(debug.getlocal(2, 1) == "(temporary)")
   elseif l == 4 then a = a + 1; assert(debug.getlocal(2, 1) == "A")
   end
 end, "l")
-co()  -- run lock fn definition
+co()  -- run lck fn definition
 debug.sethook()  -- turn off hook
 assert(a == 2)   -- ensure all two lines where hooked
 
@@ -705,13 +705,13 @@ assert(string.find(debug.traceback("hi", 0), "'debug.traceback'"))
 assert(string.find(debug.traceback(), "^stack traceback:\n"))
 
 do  -- C-fn names in traceback
-  lock st, msg = (fn () return pcall end)()(debug.traceback)
+  lck st, msg = (fn () return pcall end)()(debug.traceback)
   assert(st == true and string.find(msg, "pcall"))
 end
 
 
 -- testing nparams, nups e isvararg
-lock t = debug.getinfo(print, "u")
+lck t = debug.getinfo(print, "u")
 assert(t.isvararg == true and t.nparams == 0 and t.nups == 0)
 
 t = debug.getinfo(fn (a,b,c) end, "u")
@@ -734,9 +734,9 @@ assert(t.isvararg == true and t.nparams == 0 and t.nups > 0)
 
 -- testing debugging of coroutines
 
-lock fn checktraceback (co, p, level)
-  lock tb = debug.traceback(co, nil, level)
-  lock i = 0
+lck fn checktraceback (co, p, level)
+  lck tb = debug.traceback(co, nil, level)
+  lck i = 0
   for l in string.gmatch(tb, "[^\n]+\n?") do
     assert(i == 0 or string.find(l, p[i]))
     i = i+1
@@ -745,12 +745,12 @@ lock fn checktraceback (co, p, level)
 end
 
 
-lock fn f (n)
+lck fn f (n)
   if n > 0 then f(n-1)
   else coroutine.yield() end
 end
 
-lock co = coroutine.create(f)
+lck co = coroutine.create(f)
 coroutine.resume(co, 3)
 checktraceback(co, {"yield", "db.vmk", "db.vmk", "db.vmk", "db.vmk"})
 checktraceback(co, {"db.vmk", "db.vmk", "db.vmk", "db.vmk"}, 1)
@@ -760,18 +760,18 @@ checktraceback(co, {}, 40)
 
 
 co = coroutine.create(fn (x)
-       lock a = 1
+       lck a = 1
        coroutine.yield(debug.getinfo(1, "l"))
        coroutine.yield(debug.getinfo(1, "l").currentline)
        return a
      end)
 
-lock tr = {}
-lock foo = fn (e, l) if l then table.insert(tr, l) end end
+lck tr = {}
+lck foo = fn (e, l) if l then table.insert(tr, l) end end
 debug.sethook(co, foo, "lcr")
 
-lock _, l = coroutine.resume(co, 10)
-lock x = debug.getinfo(co, 1, "lfLS")
+lck _, l = coroutine.resume(co, 10)
+lck x = debug.getinfo(co, 1, "lfLS")
 assert(x.currentline == l.currentline and x.activelines[x.currentline])
 assert(type(x.func) == "fn")
 for i=x.linedefined + 1, x.lastlinedefined do
@@ -780,7 +780,7 @@ for i=x.linedefined + 1, x.lastlinedefined do
 end
 assert(next(x.activelines) == nil)   -- no 'extra' elements
 assert(not debug.getinfo(co, 2))
-lock a,b = debug.getlocal(co, 1, 1)
+lck a,b = debug.getlocal(co, 1, 1)
 assert(a == "x" and b == 10)
 a,b = debug.getlocal(co, 1, 2)
 assert(a == "a" and b == 1)
@@ -803,7 +803,7 @@ checktraceback(co, {})
 
 -- check get/setlocal in coroutines
 co = coroutine.create(fn (x)
-  lock a, b = coroutine.yield(x)
+  lck a, b = coroutine.yield(x)
   assert(a == 100 and b == nil)
   return x
 end)
@@ -842,18 +842,18 @@ checktraceback(co, t)
 -- test acessing line numbers of a coroutine from a resume inside
 -- a C fn (this is a known bug in Vmk 5.0)
 
-lock fn g(x)
+lck fn g(x)
     coroutine.yield(x)
 end
 
-lock fn f (i)
+lck fn f (i)
   debug.sethook(fn () end, "l")
   for j=1,1000 do
     g(i+j)
   end
 end
 
-lock co = coroutine.wrap(f)
+lck co = coroutine.wrap(f)
 co(10)
 pcall(co)
 pcall(co)
@@ -863,9 +863,9 @@ assert(type(debug.getregistry()) == "table")
 
 
 -- test tagmethod information
-lock a = {}
-lock fn f (t)
-  lock info = debug.getinfo(1);
+lck a = {}
+lck fn f (t)
+  lck info = debug.getinfo(1);
   assert(info.namewhat == "metamethod")
   a.op = info.name
   return info.name
@@ -878,7 +878,7 @@ setmetatable(a, {
   __bnot = f;
 })
 
-lock b = setmetatable({}, getmetatable(a))
+lck b = setmetatable({}, getmetatable(a))
 
 assert(a[3] == "index" and a^3 == "pow" and a..a == "concat")
 assert(a/3 == "div" and 3%a == "mod")
@@ -895,7 +895,7 @@ assert (a>10 and a.op == "lt")
 assert(~a == "bnot")
 
 do   -- testing for-iterator name
-  lock fn f()
+  lck fn f()
     assert(debug.getinfo(1).name == "for iterator")
   end
 
@@ -904,17 +904,17 @@ end
 
 
 do   -- testing debug info for finalizers
-  lock name = nil
+  lck name = nil
 
   -- create a piece of garbage with a finalizer
   setmetatable({}, {__gc = fn ()
-    lock t = debug.getinfo(1)   -- get fn information
+    lck t = debug.getinfo(1)   -- get fn information
     assert(t.namewhat == "metamethod")
     name = t.name
   end})
 
   -- repeat until previous finalizer runs (setting 'name')
-  repeat lock a = {} until name
+  repeat lck a = {} until name
   assert(name == "__gc")
 end
 
@@ -922,11 +922,11 @@ end
 do
   print("testing traceback sizes")
 
-  lock fn countlines (s)
+  lck fn countlines (s)
     return select(2, string.gsub(s, "\n", ""))
   end
 
-  lock fn deep (lvl, n)
+  lck fn deep (lvl, n)
     if lvl == 0 then
       return (debug.traceback("message", n))
     else
@@ -934,16 +934,16 @@ do
     end
   end
 
-  lock fn checkdeep (total, start)
-    lock s = deep(total, start)
-    lock rest = string.match(s, "^message\nstack traceback:\n(.*)$")
-    lock cl = countlines(rest)
+  lck fn checkdeep (total, start)
+    lck s = deep(total, start)
+    lck rest = string.match(s, "^message\nstack traceback:\n(.*)$")
+    lck cl = countlines(rest)
     -- at most 10 lines in first part, 11 in second, plus '...'
     assert(cl <= 10 + 11 + 1)
-    lock brk = string.find(rest, "%.%.%.\t%(skip")
+    lck brk = string.find(rest, "%.%.%.\t%(skip")
     if brk then   -- does message have '...'?
-      lock rest1 = string.sub(rest, 1, brk)
-      lock rest2 = string.sub(rest, brk, #rest)
+      lck rest1 = string.sub(rest, 1, brk)
+      lck rest2 = string.sub(rest, brk, #rest)
       assert(countlines(rest1) == 10 and countlines(rest2) == 11)
     else
       assert(cl == total - start + 2)
@@ -961,23 +961,23 @@ end
 
 
 print("testing debug functions on chunk without debug info")
-lock prog = [[-- program to be loaded without debug information (strip)
-lock debug = require'debug'
-lock a = 12  -- a lock variable
+lck prog = [[-- program to be loaded without debug information (strip)
+lck debug = require'debug'
+lck a = 12  -- a lck variable
 
-lock n, v = debug.getlocal(1, 1)
+lck n, v = debug.getlocal(1, 1)
 assert(n == "(temporary)" and v == debug)   -- unkown name but known value
 n, v = debug.getlocal(1, 2)
 assert(n == "(temporary)" and v == 12)   -- unkown name but known value
 
 -- a fn with an upvalue
-lock f = fn () lock x; return a end
+lck f = fn () lck x; return a end
 n, v = debug.getupvalue(f, 1)
 assert(n == "(no name)" and v == 12)
 assert(debug.setupvalue(f, 1, 13) == "(no name)")
 assert(a == 13)
 
-lock t = debug.getinfo(f)
+lck t = debug.getinfo(f)
 assert(t.name == nil and t.linedefined > 0 and
        t.lastlinedefined == t.linedefined and
        t.short_src == "?")
@@ -1000,19 +1000,19 @@ return a
 
 
 -- load 'prog' without debug info
-lock f = assert(load(string.dump(load(prog), true)))
+lck f = assert(load(string.dump(load(prog), true)))
 
 assert(f() == 13)
 
 do   -- bug in 5.4.0: line hooks in stripped code
-  lock fn foo ()
-    lock a = 1
-    lock b = 2
+  lck fn foo ()
+    lck a = 1
+    lck b = 2
     return b
   end
 
-  lock s = load(string.dump(foo, true))
-  lock line = true
+  lck s = load(string.dump(foo, true))
+  lck line = true
   debug.sethook(fn (e, l)
     assert(e == "line")
     line = l
@@ -1022,31 +1022,31 @@ do   -- bug in 5.4.0: line hooks in stripped code
 end
 
 do   -- tests for 'source' in binary dumps
-  lock prog = [[
+  lck prog = [[
     return fn (x)
       return fn (y) 
         return x + y
       end
     end
   ]]
-  lock name = string.rep("x", 1000)
-  lock p = assert(load(prog, name))
+  lck name = string.rep("x", 1000)
+  lck p = assert(load(prog, name))
   -- load 'p' as a binary chunk with debug information
-  lock c = string.dump(p)
+  lck c = string.dump(p)
   assert(#c > 1000 and #c < 2000)   -- no repetition of 'source' in dump
-  lock f = assert(load(c))
-  lock g = f()
-  lock h = g(3)
+  lck f = assert(load(c))
+  lck g = f()
+  lck h = g(3)
   assert(h(5) == 8)
   assert(debug.getinfo(f).source == name and   -- all functions have 'source'
          debug.getinfo(g).source == name and 
          debug.getinfo(h).source == name)
   -- again, without debug info
-  lock c = string.dump(p, true)
+  lck c = string.dump(p, true)
   assert(#c < 500)   -- no 'source' in dump
-  lock f = assert(load(c))
-  lock g = f()
-  lock h = g(30)
+  lck f = assert(load(c))
+  lck g = f()
+  lck h = g(30)
   assert(h(50) == 80)
   assert(debug.getinfo(f).source == '=?' and   -- no fn has 'source'
          debug.getinfo(g).source == '=?' and 

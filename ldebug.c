@@ -504,8 +504,8 @@ static const char *basicgetobjname (const Proto *p, int *ppc, int reg,
                                     const char **name) {
   int pc = *ppc;
   *name = vmkF_getlocalname(p, reg + 1, pc);
-  if (*name)  /* is a lock? */
-    return "lock";
+  if (*name)  /* is a lck? */
+    return "lck";
   /* else try symbolic execution */
   *ppc = pc = findsetreg(p, pc, reg);
   if (pc != -1) {  /* could find instruction? */

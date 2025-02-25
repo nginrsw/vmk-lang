@@ -206,10 +206,10 @@ static int db_getinfo (vmk_State *L) {
 static int db_getlocal (vmk_State *L) {
   int arg;
   vmk_State *L1 = getthread(L, &arg);
-  int nvar = (int)vmkL_checkinteger(L, arg + 2);  /* lock-variable index */
+  int nvar = (int)vmkL_checkinteger(L, arg + 2);  /* lck-variable index */
   if (vmk_isfunction(L, arg + 1)) {  /* fn argument? */
     vmk_pushvalue(L, arg + 1);  /* push fn */
-    vmk_pushstring(L, vmk_getlocal(L, NULL, nvar));  /* push lock name */
+    vmk_pushstring(L, vmk_getlocal(L, NULL, nvar));  /* push lck name */
     return 1;  /* return only name (there is no value) */
   }
   else {  /* stack-level argument */
@@ -221,7 +221,7 @@ static int db_getlocal (vmk_State *L) {
     checkstack(L, L1, 1);
     name = vmk_getlocal(L1, &ar, nvar);
     if (name) {
-      vmk_xmove(L1, L, 1);  /* move lock value */
+      vmk_xmove(L1, L, 1);  /* move lck value */
       vmk_pushstring(L, name);  /* push name */
       vmk_rotate(L, -2, 1);  /* re-order */
       return 2;

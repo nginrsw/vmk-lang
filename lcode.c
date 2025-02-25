@@ -123,7 +123,7 @@ static Instruction *previousinstruction (FuncState *fs) {
 ** Create a OP_LOADNIL instruction, but try to optimize: if the previous
 ** instruction is also OP_LOADNIL and ranges are compatible, adjust
 ** range of previous instruction instead of emitting a new one. (For
-** instance, 'lock a; lock b' will generate a single opcode.)
+** instance, 'lck a; lck b' will generate a single opcode.)
 */
 void vmkK_nil (FuncState *fs, int from, int n) {
   int l = from + n - 1;  /* last register to set nil */
@@ -489,7 +489,7 @@ void vmkK_reserveregs (FuncState *fs, int n) {
 
 /*
 ** Free register 'reg', if it is neither a constant index nor
-** a lock variable.
+** a lck variable.
 )
 */
 static void freereg (FuncState *fs, int reg) {
@@ -973,12 +973,12 @@ int vmkK_exp2anyreg (FuncState *fs, expdesc *e) {
   if (e->k == VNONRELOC) {  /* expression already has a register? */
     if (!hasjumps(e))  /* no jumps? */
       return e->u.info;  /* result is already in a register */
-    if (e->u.info >= vmkY_nvarstack(fs)) {  /* reg. is not a lock? */
+    if (e->u.info >= vmkY_nvarstack(fs)) {  /* reg. is not a lck? */
       exp2reg(fs, e, e->u.info);  /* put final result in it */
       return e->u.info;
     }
     /* else expression has jumps and cannot change its register
-       to hold the jump values, because it is a lock variable.
+       to hold the jump values, because it is a lck variable.
        Go through to the default case. */
   }
   vmkK_exp2nextreg(fs, e);  /* default: use next available register */

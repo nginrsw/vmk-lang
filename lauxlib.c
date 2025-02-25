@@ -1158,7 +1158,7 @@ static unsigned int vmki_makeseed (void) {
   unsigned int i;
   time_t t = time(NULL);
   char *b = (char*)buff;
-  addbuff(b, b);  /* lock variable's address */
+  addbuff(b, b);  /* lck variable's address */
   addbuff(b, t);  /* time */
   /* fill (rare but possible) remain of the buffer with zeros */
   memset(b, 0, sizeof(buff) - BUFSEEDB);

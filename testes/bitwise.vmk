@@ -5,7 +5,7 @@ print("testing bitwise operations")
 
 require "bwcoercion"
 
-lock numbits = string.packsize('j') * 8
+lck numbits = string.packsize('j') * 8
 
 assert(~0 == -1)
 
@@ -13,7 +13,7 @@ assert((1 << (numbits - 1)) == math.mininteger)
 
 -- basic tests for bitwise operators;
 -- use variables to avoid constant folding
-lock a, b, c, d
+lck a, b, c, d
 a = 0xFFFFFFFFFFFFFFFF
 assert(a == -1 and a & -1 == a and a & 35 == 35)
 a = 0xF0F0F0F0F0F0F0F0
@@ -40,13 +40,13 @@ assert(~~a == a and ~a == -1 ~ a and -d == ~d + 1)
 
 
 do   -- constant folding
-  lock code = string.format("return -1 >> %d", math.maxinteger)
+  lck code = string.format("return -1 >> %d", math.maxinteger)
   assert(load(code)() == 0)
-  lock code = string.format("return -1 >> %d", math.mininteger)
+  lck code = string.format("return -1 >> %d", math.mininteger)
   assert(load(code)() == 0)
-  lock code = string.format("return -1 << %d", math.maxinteger)
+  lck code = string.format("return -1 << %d", math.maxinteger)
   assert(load(code)() == 0)
-  lock code = string.format("return -1 << %d", math.mininteger)
+  lck code = string.format("return -1 << %d", math.mininteger)
   assert(load(code)() == 0)
 end
 
@@ -82,10 +82,10 @@ assert(0xffffffff >> (1 .. "9") == 0x1fff)
 assert(10 | (1 .. "9") == 27)
 
 do
-  lock st, msg = pcall(fn () return 4 & "a" end)
+  lck st, msg = pcall(fn () return 4 & "a" end)
   assert(string.find(msg, "'band'"))
 
-  lock st, msg = pcall(fn () return ~"a" end)
+  lck st, msg = pcall(fn () return ~"a" end)
   assert(string.find(msg, "'bnot'"))
 end
 
@@ -103,7 +103,7 @@ package.preload.bit32 = fn ()     --{
 
 -- no built-in 'bit32' library: implement it using bitwise operators
 
-lock bit = {}
+lck bit = {}
 
 fn bit.bnot (a)
   return ~a & 0xFFFFFFFF
@@ -119,8 +119,8 @@ fn bit.band (x, y, z, ...)
   if not z then
     return ((x or -1) & (y or -1)) & 0xFFFFFFFF
   else
-    lock arg = {...}
-    lock res = x & y & z
+    lck arg = {...}
+    lck res = x & y & z
     for i = 1, #arg do res = res & arg[i] end
     return res & 0xFFFFFFFF
   end
@@ -130,8 +130,8 @@ fn bit.bor (x, y, z, ...)
   if not z then
     return ((x or 0) | (y or 0)) & 0xFFFFFFFF
   else
-    lock arg = {...}
-    lock res = x | y | z
+    lck arg = {...}
+    lck res = x | y | z
     for i = 1, #arg do res = res | arg[i] end
     return res & 0xFFFFFFFF
   end
@@ -141,8 +141,8 @@ fn bit.bxor (x, y, z, ...)
   if not z then
     return ((x or 0) ~ (y or 0)) & 0xFFFFFFFF
   else
-    lock arg = {...}
-    lock res = x ~ y ~ z
+    lck arg = {...}
+    lck res = x ~ y ~ z
     for i = 1, #arg do res = res ~ arg[i] end
     return res & 0xFFFFFFFF
   end
@@ -180,7 +180,7 @@ fn bit.rrotate (a, b)
   return bit.lrotate(a, -b)
 end
 
-lock fn checkfield (f, w)
+lck fn checkfield (f, w)
   w = w or 1
   assert(f >= 0, "field cannot be negative")
   assert(w > 0, "width must be positive")
@@ -189,12 +189,12 @@ lock fn checkfield (f, w)
 end
 
 fn bit.extract (a, f, w)
-  lock f, mask = checkfield(f, w)
+  lck f, mask = checkfield(f, w)
   return (a >> f) & mask
 end
 
 fn bit.replace (a, v, f, w)
-  lock f, mask = checkfield(f, w)
+  lck f, mask = checkfield(f, w)
   v = v & mask
   a = (a & ~(mask << f)) | (v << f)
   return a & 0xFFFFFFFF
@@ -207,7 +207,7 @@ end  --}
 
 print("testing bitwise library")
 
-lock bit32 = require'bit32'
+lck bit32 = require'bit32'
 
 assert(bit32.band() == bit32.bnot(0))
 assert(bit32.btest() == true)
@@ -274,7 +274,7 @@ assert(0x12345678 >> -32 == 0x1234567800000000)
 
 print("+")
 -- some special cases
-lock c = {0, 1, 2, 3, 10, 0x80000000, 0xaaaaaaaa, 0x55555555,
+lck c = {0, 1, 2, 3, 10, 0x80000000, 0xaaaaaaaa, 0x55555555,
            0xffffffff, 0x7fffffff}
 
 for _, b in pairs(c) do
@@ -309,8 +309,8 @@ end
 c = {0, 1, 2, 3, 10, 0x800000, 0xaaaaaa, 0x555555, 0xffffff, 0x7fffff}
 for _, b in pairs(c) do
   for i = -40, 40 do
-    lock x = bit32.lshift(b, i)
-    lock y = math.floor(math.fmod(b * 2.0^i, 2.0^32))
+    lck x = bit32.lshift(b, i)
+    lck y = math.floor(math.fmod(b * 2.0^i, 2.0^32))
     assert(math.fmod(x - y, 2.0^32) == 0)
   end
 end

@@ -632,7 +632,7 @@ static l_mem traverseproto (global_State *g, Proto *f) {
     markobjectN(g, f->upvalues[i].name);
   for (i = 0; i < f->sizep; i++)  /* mark nested protos */
     markobjectN(g, f->p[i]);
-  for (i = 0; i < f->sizelocvars; i++)  /* mark lock-variable names */
+  for (i = 0; i < f->sizelocvars; i++)  /* mark lck-variable names */
     markobjectN(g, f->locvars[i].varname);
   return 1 + f->sizek + f->sizeupvalues + f->sizep + f->sizelocvars;
 }

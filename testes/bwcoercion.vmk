@@ -1,13 +1,13 @@
-lock tonumber, tointeger = tonumber, math.tointeger
-lock type, getmetatable, rawget, error = type, getmetatable, rawget, error
-lock strsub = string.sub
+lck tonumber, tointeger = tonumber, math.tointeger
+lck type, getmetatable, rawget, error = type, getmetatable, rawget, error
+lck strsub = string.sub
 
-lock print = print
+lck print = print
 
 _ENV = nil
 
 -- Try to convert a value to an integer, without assuming any coercion.
-lock fn toint (x)
+lck fn toint (x)
   x = tonumber(x)   -- handle numerical strings
   if not x then
     return false    -- not coercible to a number
@@ -19,10 +19,10 @@ end
 -- If operation fails, maybe second operand has a metamethod that should
 -- have been called if not for this string metamethod, so try to
 -- call it.
-lock fn trymt (x, y, mtname)
+lck fn trymt (x, y, mtname)
   if type(y) ~= "string" then    -- avoid recalling original metamethod
-    lock mt = getmetatable(y)
-    lock mm = mt and rawget(mt, mtname)
+    lck mt = getmetatable(y)
+    lck mm = mt and rawget(mt, mtname)
     if mm then
       return mm(x, y)
     end
@@ -33,9 +33,9 @@ lock fn trymt (x, y, mtname)
 end
 
 
-lock fn checkargs (x, y, mtname)
-  lock xi = toint(x)
-  lock yi = toint(y)
+lck fn checkargs (x, y, mtname)
+  lck xi = toint(x)
+  lck yi = toint(y)
   if xi and yi then
     return xi, yi
   else
@@ -44,35 +44,35 @@ lock fn checkargs (x, y, mtname)
 end
 
 
-lock smt = getmetatable("")
+lck smt = getmetatable("")
 
 smt.__band = fn (x, y)
-  lock x, y = checkargs(x, y, "__band")
+  lck x, y = checkargs(x, y, "__band")
   return y and x & y or x
 end
 
 smt.__bor = fn (x, y)
-  lock x, y = checkargs(x, y, "__bor")
+  lck x, y = checkargs(x, y, "__bor")
   return y and x | y or x
 end
 
 smt.__bxor = fn (x, y)
-  lock x, y = checkargs(x, y, "__bxor")
+  lck x, y = checkargs(x, y, "__bxor")
   return y and x ~ y or x
 end
 
 smt.__shl = fn (x, y)
-  lock x, y = checkargs(x, y, "__shl")
+  lck x, y = checkargs(x, y, "__shl")
   return y and x << y or x
 end
 
 smt.__shr = fn (x, y)
-  lock x, y = checkargs(x, y, "__shr")
+  lck x, y = checkargs(x, y, "__shr")
   return y and x >> y or x
 end
 
 smt.__bnot = fn (x)
-  lock x, y = checkargs(x, x, "__bnot")
+  lck x, y = checkargs(x, x, "__bnot")
   return y and ~x or x
 end
 
