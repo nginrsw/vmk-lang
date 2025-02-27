@@ -1,9 +1,9 @@
 require 'lib/x'
 require 'lib/y'
 
-lock ax = x_head()
-lock ay = y_head()
-lock z = (ax.." "..str.upper(ay))
+lck ax = x_head()
+lck ay = y_head()
+lck z = (ax.." "..str.upper(ay))
 
 fn main()
 	print(ax)
