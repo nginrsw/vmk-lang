@@ -5,7 +5,7 @@ lck ax = x_head()
 lck ay = y_head()
 lck z = (ax.." "..str.upper(ay))
 
-fn main()
+main = fn()
 	print(ax)
 	print(ay)
 	print(z)
