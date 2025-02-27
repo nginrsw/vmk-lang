@@ -3,7 +3,7 @@ require 'lib/y'
 
 lck ax = x_head()
 lck ay = y_head()
-lck z = (ax.." "..str.upper(ay))
+lck z = ax.." "..ay:upper()
 
 main = fn()
 	print(ax)
